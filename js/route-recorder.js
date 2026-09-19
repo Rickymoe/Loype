@@ -30,9 +30,25 @@ function onLoypeRouteRightClick(e) {
   if (routePoints.length < 2) {
     insertIndex = 0;
   } else {
+    const clickPt = turf.point([lng, lat]);
     const line = turf.lineString(routePoints.map(p => [p.lng, p.lat]));
-    const snapped = turf.nearestPointOnLine(line, turf.point([lng, lat]));
-    insertIndex = snapped.properties.index + 1;
+    const snapped = turf.nearestPointOnLine(line, clickPt);
+    const startPt = routePoints[0];
+    const endPt = routePoints[routePoints.length - 1];
+    const distToStart = turf.distance(clickPt, turf.point([startPt.lng, startPt.lat]));
+    const distToEnd = turf.distance(clickPt, turf.point([endPt.lng, endPt.lat]));
+    const distToLine = snapped.properties.dist;
+
+    // Nærmest linja ELLERS foretrekkes; men hvis klikket egentlig ligger
+    // nærmere å forlenge ruten forbi start eller slutt, gjør det i stedet
+    // for å tvinge inn et punkt midt i en delstrekning.
+    if (distToStart <= distToLine && distToStart <= distToEnd) {
+      insertIndex = 0;
+    } else if (distToEnd <= distToLine && distToEnd <= distToStart) {
+      insertIndex = routePoints.length;
+    } else {
+      insertIndex = snapped.properties.index + 1;
+    }
   }
 
   const pt = { lat, lng };

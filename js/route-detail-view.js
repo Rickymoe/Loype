@@ -200,10 +200,10 @@ function renderDetailChart(profile) {
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('cx', String(p.x));
     dot.setAttribute('cy', String(p.y));
-    dot.setAttribute('r', '3');
-    dot.setAttribute('fill', '#1a1a2e');
+    dot.setAttribute('r', '4');
+    dot.setAttribute('fill', LOYPE_LINE_COLOR);
     dot.setAttribute('stroke', '#fff');
-    dot.setAttribute('stroke-width', '1');
+    dot.setAttribute('stroke-width', '2');
     svg.appendChild(dot);
   });
 
@@ -292,7 +292,9 @@ function addDetailLabel(profile, point, name) {
   dot.setAttribute('cx', String(xClamped));
   dot.setAttribute('cy', String(y));
   dot.setAttribute('r', '4');
-  dot.setAttribute('fill', '#1a1a2e');
+  dot.setAttribute('fill', LOYPE_LINE_COLOR);
+  dot.setAttribute('stroke', '#fff');
+  dot.setAttribute('stroke-width', '2');
   svg.appendChild(dot);
 
   // Vertikal tekst som vokser oppover fra grunnlinja, like til venstre for

@@ -6,6 +6,9 @@
 
 html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
+#map,
+#map * { cursor: crosshair !important; }
+
 #map { position: absolute; inset: 0; }
 
 #left-column {

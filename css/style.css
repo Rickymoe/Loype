@@ -6,8 +6,7 @@
 
 html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
-#map,
-#map * { cursor: crosshair !important; }
+#map { cursor: crosshair; }
 
 #map { position: absolute; inset: 0; }
 

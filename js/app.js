@@ -7,6 +7,8 @@ function initMap() {
     mapTypeId: 'roadmap',
     disableDefaultUI: false,
     clickableIcons: false,
+    draggableCursor: 'crosshair',
+    draggingCursor: 'crosshair',
     mapId: 'DEMO_MAP_ID',
   });
 

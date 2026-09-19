@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Løype</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="map"></div>
+
+  <div id="left-column">
+    <div id="loype-panel">
+      <div class="panel-header">
+        <h2>Løype</h2>
+        <button id="loype-panel-collapse-btn" class="panel-collapse-btn" aria-label="Skjul/vis panel" title="Skjul/vis panel">▾</button>
+      </div>
+      <p class="loype-instructions">Klikk på kartet for å legge til punkter langs ruten din, i rekkefølge. Høyreklikk for å sette inn et punkt et sted midt i ruten.</p>
+      <div class="loype-icon-row">
+        <button id="loype-geolocate-btn" class="loype-icon-btn" aria-label="Bruk min posisjon" title="Bruk min posisjon">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="3" fill="#2e7d32" />
+            <path d="M12 2V5M12 19V22M2 12H5M19 12H22" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" />
+          </svg>
+        </button>
+      </div>
+      <label class="loype-checkbox">
+        <input type="checkbox" id="loype-mirror-checkbox" />
+        Speil retur (frem og tilbake)
+      </label>
+      <div class="field-group">
+        <label for="loype-pace-input">Snittid flatterreng (min/km)</label>
+        <input type="text" id="loype-pace-input" value="5:30" inputmode="numeric" />
+      </div>
+      <div class="loype-controls">
+        <button id="loype-undo-btn" class="loype-btn" disabled>Angre siste punkt</button>
+        <button id="loype-clear-btn" class="loype-btn" disabled>Tøm rute</button>
+      </div>
+      <div id="loype-error-msg" class="hidden"></div>
+      <div id="loype-result" class="hidden">
+        <div id="loype-distance-value"></div>
+        <div id="loype-time-value" class="hidden"></div>
+        <svg id="loype-elevation-chart" viewBox="0 0 240 90" preserveAspectRatio="none" role="img"></svg>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+  <script src="js/route-recorder.js"></script>
+  <script src="js/route-detail-view.js"></script>
+  <script src="js/app.js"></script>
+  <script
+    src="https://maps.googleapis.com/maps/api/js?key=%%GOOGLE_MAPS_API_KEY%%&libraries=marker&callback=initMap"
+    async defer>
+  </script>
+<!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3b2830d8c1b74ed68dee031783103adc"}'></script><!-- End Cloudflare Web Analytics -->
+<script data-goatcounter="https://rickymoe.goatcounter.com/count" async src="//gc.zgo.at/count.js"></script>
+</body>
+</html>

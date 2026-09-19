@@ -195,6 +195,18 @@ function renderDetailChart(profile) {
     : 0;
   poly([lastBase, lastFront, lastBackFront, lastBackBase], GRADE_BUCKETS[gradeBucketIndex(lastGrade)].dark);
 
+  // --- Prikk for hvert punkt du faktisk klikket, langs ridgen ---
+  frontPts.forEach(p => {
+    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    dot.setAttribute('cx', String(p.x));
+    dot.setAttribute('cy', String(p.y));
+    dot.setAttribute('r', '3');
+    dot.setAttribute('fill', '#1a1a2e');
+    dot.setAttribute('stroke', '#fff');
+    dot.setAttribute('stroke-width', '1');
+    svg.appendChild(dot);
+  });
+
   // --- Høyderuler til høyre ---
   const rulerTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   rulerTick.setAttribute('x1', String(rulerX));

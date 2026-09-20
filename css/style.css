@@ -102,6 +102,18 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
     right: 10px;
     width: auto;
   }
+
+  /* Oppsummeringsteksten fikk for lite bredde ved siden av
+     Nå/Gå/Løp/Sykkel-knappene på smale skjermer og brakk stygt
+     ord for ord. Stables i stedet: tekst øverst, knapper under. */
+  .loype-detail-header {
+    flex-direction: column;
+    padding-right: 24px;
+  }
+
+  .loype-detail-controls {
+    flex-wrap: wrap;
+  }
 }
 
 #loype-panel.collapsed > *:not(.panel-header) {

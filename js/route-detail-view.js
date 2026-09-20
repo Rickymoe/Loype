@@ -513,20 +513,6 @@ function renderDetailChart(profile) {
       svg.appendChild(seg);
     }
 
-    // Rene visuelle prikker ved hvert punkt — ikke interaktive selv, siden
-    // treffsonen under (hitPath) dekker hele linja sammenhengende.
-    linePts.forEach(p => {
-      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      dot.setAttribute('cx', String(p.x));
-      dot.setAttribute('cy', String(p.y));
-      dot.setAttribute('r', '3');
-      dot.setAttribute('fill', '#fff');
-      dot.setAttribute('stroke', LOYPE_LINE_COLOR);
-      dot.setAttribute('stroke-width', '2');
-      dot.setAttribute('pointer-events', 'none');
-      svg.appendChild(dot);
-    });
-
     // Prikk som følger musepekeren langs linja og viser akkurat tid/energi
     // for punktet der pekeren faktisk treffer — interpolert mellom de to
     // nærmeste rutepunktene, ikke bare verdien ved enden av segmentet.

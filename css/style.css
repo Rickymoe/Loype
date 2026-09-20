@@ -110,6 +110,15 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .field-group { margin: 10px 0; }
 
+.loype-profile-box {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 10px 12px 4px;
+  margin: 10px 0;
+}
+
+.loype-profile-box .field-group { margin: 0 0 10px; }
+
 .field-row {
   display: flex;
   gap: 10px;
@@ -297,8 +306,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 #loype-bmi-value {
   font-size: 11px;
   color: #888;
-  margin-top: -4px;
-  margin-bottom: 10px;
+  margin-top: -6px;
+  margin-bottom: 6px;
 }
 
 .loype-chart-wrap {

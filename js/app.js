@@ -28,3 +28,15 @@ function initPanelCollapse(panelId, buttonId) {
     btn.textContent = collapsed ? '▸' : '▾';
   });
 }
+
+function initInfoPanel() {
+  const infoPanel = document.getElementById('loype-info-panel');
+  document.getElementById('loype-info-btn').addEventListener('click', () => {
+    infoPanel.classList.toggle('hidden');
+  });
+  infoPanel.querySelector('.close-btn').addEventListener('click', () => {
+    infoPanel.classList.add('hidden');
+  });
+}
+
+document.addEventListener('DOMContentLoaded', initInfoPanel);

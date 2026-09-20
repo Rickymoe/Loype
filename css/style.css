@@ -41,6 +41,69 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .panel-collapse-btn:hover { color: #333; }
 
+.panel-header-actions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+#loype-info-panel {
+  position: absolute;
+  top: 16px;
+  left: 292px;
+  z-index: 10;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(8px);
+  border-radius: 12px;
+  padding: 16px;
+  width: 240px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+}
+
+#loype-info-panel h3 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin-bottom: 10px;
+  padding-right: 16px;
+}
+
+#loype-info-panel ul {
+  padding-left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#loype-info-panel ul li {
+  font-size: 12px;
+  color: #555;
+  line-height: 1.4;
+}
+
+#loype-info-panel .close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #aaa;
+  cursor: pointer;
+  padding: 0;
+}
+
+#loype-info-panel .close-btn:hover { color: #555; }
+
+@media (max-width: 580px) {
+  #loype-info-panel {
+    left: 10px;
+    right: 10px;
+    width: auto;
+  }
+}
+
 #loype-panel.collapsed > *:not(.panel-header) {
   display: none;
 }

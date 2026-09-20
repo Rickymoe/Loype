@@ -13,7 +13,10 @@
     <div id="loype-panel">
       <div class="panel-header">
         <h2>Løype</h2>
-        <button id="loype-panel-collapse-btn" class="panel-collapse-btn" aria-label="Skjul/vis panel" title="Skjul/vis panel">▾</button>
+        <div class="panel-header-actions">
+          <button id="loype-info-btn" class="panel-collapse-btn" aria-label="Om beregningene" title="Om beregningene">ⓘ</button>
+          <button id="loype-panel-collapse-btn" class="panel-collapse-btn" aria-label="Skjul/vis panel" title="Skjul/vis panel">▾</button>
+        </div>
       </div>
       <p class="loype-instructions">Klikk på kartet for å legge til punkter langs ruten din, i rekkefølge. Høyreklikk for å sette inn et punkt et sted midt i ruten.</p>
       <div class="loype-icon-row">
@@ -67,6 +70,17 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div id="loype-info-panel" class="hidden">
+    <button class="close-btn" aria-label="Lukk">&times;</button>
+    <h3>Om beregningene</h3>
+    <ul>
+      <li><strong>Høydeprofil:</strong> Kartverkets høydemodell i Norge, Open-Elevation utenfor Norge.</li>
+      <li><strong>Estimert tid:</strong> justeres per delstrekning etter helning – jo brattere, jo saktere.</li>
+      <li><strong>Energiforbruk:</strong> ACSM sine metabolske ligninger, ut fra vekt, fart og helning (krever at vekt er fylt ut).</li>
+      <li><strong>BMI:</strong> vekt (kg) delt på høyde (m) i andre.</li>
+    </ul>
   </div>
 
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>

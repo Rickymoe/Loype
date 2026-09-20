@@ -65,6 +65,24 @@ function gradeBucketIndex(grade) {
   return GRADE_BUCKETS.findIndex(b => grade < b.max);
 }
 
+// Kumulativ, høydejustert reisetid til hvert punkt i profilen — samme
+// grad-avhengige modell som segmentTimeSeconds, men regnet direkte fra
+// avstandsprofilen (som også dekker det speilede returbenet).
+function buildCumulativeTimeProfile(profile, paceSecPerKm) {
+  const cumSeconds = [0];
+  for (let i = 1; i < profile.length; i++) {
+    const segKm = profile[i].distKm - profile[i - 1].distKm;
+    if (segKm <= 0) {
+      cumSeconds.push(cumSeconds[i - 1]);
+      continue;
+    }
+    const climbGrade = Math.max(0, (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000));
+    const factor = 1 + 10 * climbGrade + 20 * climbGrade * climbGrade;
+    cumSeconds.push(cumSeconds[i - 1] + segKm * paceSecPerKm * factor);
+  }
+  return cumSeconds;
+}
+
 let detailModal = null;
 
 function openRouteDetailView() {
@@ -137,9 +155,11 @@ function renderDetailChart(profile) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
   const width = 1100, height = 380;
-  const plotLeft = 30, plotRight = width - 150, plotTop = 60, plotBottom = height - 90;
+  const plotLeft = 30, plotRight = width - 150, plotTop = 80, plotBottom = height - 90;
   const baseHeight = 22;
   const rulerX = plotRight + DEPTH_DX + 25;
+  const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
+  const cumSeconds = paceSecPerKm ? buildCumulativeTimeProfile(profile, paceSecPerKm) : null;
 
   const totalKm = profile[profile.length - 1].distKm;
   const elevations = profile.map(p => p.elevation);
@@ -205,8 +225,9 @@ function renderDetailChart(profile) {
     : 0;
   poly([lastBase, lastFront, lastBackFront, lastBackBase], GRADE_BUCKETS[gradeBucketIndex(lastGrade)].dark);
 
-  // --- Prikk for hvert punkt du faktisk klikket, langs ridgen ---
-  frontPts.forEach(p => {
+  // --- Prikk for hvert punkt du faktisk klikket, langs ridgen. Hover viser
+  // avstand/høyde/tid for ALLE punkter (native SVG-tooltip via <title>). ---
+  frontPts.forEach((p, i) => {
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('cx', String(p.x));
     dot.setAttribute('cy', String(p.y));
@@ -214,8 +235,68 @@ function renderDetailChart(profile) {
     dot.setAttribute('fill', LOYPE_LINE_COLOR);
     dot.setAttribute('stroke', '#fff');
     dot.setAttribute('stroke-width', '2');
+
+    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+    const timePart = cumSeconds ? ` · ${formatDuration(cumSeconds[i])}` : '';
+    title.textContent = `${profile[i].distKm.toFixed(2)} km · ${Math.round(profile[i].elevation)} m${timePart}`;
+    dot.appendChild(title);
+
     svg.appendChild(dot);
   });
+
+  // --- Svevende tidslinje: en lett stiplet linje over terrenget, med tid
+  // trukket frem ved start, slutt og høyeste punkt. Alle andre punkter har
+  // fortsatt tiden sin tilgjengelig via hover (se prikkene over). ---
+  if (cumSeconds) {
+    const floatY = 38;
+
+    const floatLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    floatLine.setAttribute('x1', String(plotLeft));
+    floatLine.setAttribute('y1', String(floatY));
+    floatLine.setAttribute('x2', String(plotRight));
+    floatLine.setAttribute('y2', String(floatY));
+    floatLine.setAttribute('stroke', '#bbb');
+    floatLine.setAttribute('stroke-width', '1');
+    floatLine.setAttribute('stroke-dasharray', '4,4');
+    svg.appendChild(floatLine);
+
+    let peakIndex = 0;
+    for (let i = 1; i < profile.length; i++) {
+      if (profile[i].elevation > profile[peakIndex].elevation) peakIndex = i;
+    }
+    const keyIndexes = [...new Set([0, peakIndex, profile.length - 1])];
+
+    keyIndexes.forEach(i => {
+      const x = frontPts[i].x;
+
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tick.setAttribute('x1', String(x));
+      tick.setAttribute('y1', String(floatY));
+      tick.setAttribute('x2', String(x));
+      tick.setAttribute('y2', String(frontPts[i].y));
+      tick.setAttribute('stroke', '#999');
+      tick.setAttribute('stroke-width', '1');
+      tick.setAttribute('stroke-dasharray', '3,3');
+      svg.appendChild(tick);
+
+      const tickDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      tickDot.setAttribute('cx', String(x));
+      tickDot.setAttribute('cy', String(floatY));
+      tickDot.setAttribute('r', '2.5');
+      tickDot.setAttribute('fill', '#999');
+      svg.appendChild(tickDot);
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', String(Math.min(Math.max(x, plotLeft + 20), plotRight - 20)));
+      label.setAttribute('y', String(floatY - 8));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '11');
+      label.setAttribute('font-weight', '600');
+      label.setAttribute('fill', '#5f6368');
+      label.textContent = formatDuration(cumSeconds[i]);
+      svg.appendChild(label);
+    });
+  }
 
   // --- Høyderuler til høyre ---
   const rulerTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');

@@ -385,6 +385,25 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   margin-bottom: 0;
 }
 
+.loype-detail-when {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.loype-detail-when .loype-pace-mode-btn {
+  flex: 0 0 auto;
+  padding: 5px 14px;
+}
+
+#loype-detail-date-input {
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
 .loype-detail-tooltip {
   position: fixed;
   pointer-events: none;

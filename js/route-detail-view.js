@@ -145,6 +145,7 @@ function openRouteDetailView() {
 
   buildDetailModalSkeleton();
   initDetailPaceButtons();
+  initDetailWhenButton();
   renderDetailSummary(profile);
   renderDetailChart(profile);
   loadPlaceLabels(profile);
@@ -166,6 +167,50 @@ function initDetailPaceButtons() {
     setPaceMode('walk');
     syncDetailPaceButtons();
     refreshDetailView();
+  });
+}
+
+function toIsoDateLocal(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function formatShortDate(isoDate) {
+  return new Date(`${isoDate}T00:00:00`).toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
+}
+
+// Datoen brukeren planlegger å løpe/gå ruten — brukes til værmelding/sol-tid
+// når den funksjonen kommer på plass. MET Norway sine gratis API-er ser bare
+// 9 dager frem, så velgeren begrenses tilsvarende.
+let selectedForecastDate = null;
+
+function initDetailWhenButton() {
+  const btn = document.getElementById('loype-detail-when-btn');
+  const dateInput = document.getElementById('loype-detail-date-input');
+
+  const today = new Date();
+  const maxDate = new Date(today);
+  maxDate.setDate(maxDate.getDate() + 9);
+  const todayIso = toIsoDateLocal(today);
+
+  dateInput.min = todayIso;
+  dateInput.max = toIsoDateLocal(maxDate);
+  dateInput.value = todayIso;
+  selectedForecastDate = todayIso;
+  btn.textContent = 'Nå';
+
+  btn.addEventListener('click', () => {
+    dateInput.classList.toggle('hidden');
+    if (!dateInput.classList.contains('hidden') && dateInput.showPicker) {
+      dateInput.showPicker();
+    }
+  });
+
+  dateInput.addEventListener('change', () => {
+    selectedForecastDate = dateInput.value;
+    btn.textContent = dateInput.value === todayIso ? 'Nå' : formatShortDate(dateInput.value);
   });
 }
 
@@ -204,6 +249,10 @@ function buildDetailModalSkeleton() {
       <button id="loype-detail-close" aria-label="Lukk">&times;</button>
       <div class="loype-detail-header">
         <div id="loype-detail-summary"></div>
+        <div class="loype-detail-when">
+          <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn">Nå</button>
+          <input type="date" id="loype-detail-date-input" class="hidden" />
+        </div>
         <div class="loype-pace-mode loype-detail-pace-mode">
           <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
           <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>

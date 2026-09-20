@@ -201,17 +201,19 @@ function initDetailWhenButton() {
   selectedForecastDate = todayIso;
   btn.textContent = 'Nå';
 
+  // Datofeltet vises aldri selv — kun knappeteksten gjør. Klikk åpner bare
+  // nettleserens native datovelger-popup forankret i det usynlige feltet.
   btn.addEventListener('click', () => {
-    dateInput.classList.toggle('hidden');
-    if (!dateInput.classList.contains('hidden') && dateInput.showPicker) {
+    if (dateInput.showPicker) {
       dateInput.showPicker();
+    } else {
+      dateInput.focus();
     }
   });
 
   dateInput.addEventListener('change', () => {
     selectedForecastDate = dateInput.value;
     btn.textContent = dateInput.value === todayIso ? 'Nå' : formatShortDate(dateInput.value);
-    dateInput.classList.add('hidden');
   });
 }
 
@@ -252,7 +254,7 @@ function buildDetailModalSkeleton() {
         <div id="loype-detail-summary"></div>
         <div class="loype-detail-when">
           <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn">Nå</button>
-          <input type="date" id="loype-detail-date-input" class="hidden" />
+          <input type="date" id="loype-detail-date-input" />
         </div>
         <div class="loype-pace-mode loype-detail-pace-mode">
           <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>

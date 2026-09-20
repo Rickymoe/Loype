@@ -425,6 +425,18 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   flex: 0 0 auto;
 }
 
+.loype-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loype-copy-btn svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+
 .loype-detail-controls {
   display: flex;
   align-items: center;

@@ -585,14 +585,18 @@ function renderDetailChart(profile) {
     hoverIndicator.setAttribute('display', 'none');
     svg.appendChild(hoverIndicator);
 
-    const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    hitPath.setAttribute('points', linePts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
-    hitPath.setAttribute('fill', 'none');
-    hitPath.setAttribute('stroke', 'transparent');
-    hitPath.setAttribute('stroke-width', '20');
-    svg.appendChild(hitPath);
+    // Hele plottområdet er treffsone, ikke bare en smal korridor langs
+    // selve linja — musepekeren trenger bare være et sted inne i grafen,
+    // ikke nøyaktig oppå streken, for å utløse tooltip.
+    const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    hitArea.setAttribute('x', String(plotLeft));
+    hitArea.setAttribute('y', '0');
+    hitArea.setAttribute('width', String(plotRight - plotLeft));
+    hitArea.setAttribute('height', String(plotBottom));
+    hitArea.setAttribute('fill', 'transparent');
+    svg.appendChild(hitArea);
 
-    hitPath.addEventListener('mousemove', e => {
+    hitArea.addEventListener('mousemove', e => {
       const pt = svg.createSVGPoint();
       pt.x = e.clientX;
       pt.y = e.clientY;
@@ -623,7 +627,7 @@ function renderDetailChart(profile) {
       hoverIndicator.setAttribute('display', 'inline');
     });
 
-    hitPath.addEventListener('mouseleave', () => {
+    hitArea.addEventListener('mouseleave', () => {
       hideDetailTooltip();
       hoverIndicator.setAttribute('display', 'none');
     });

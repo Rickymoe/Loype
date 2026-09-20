@@ -146,6 +146,7 @@ function openRouteDetailView() {
   buildDetailModalSkeleton();
   initDetailPaceButtons();
   initDetailWhenButton();
+  refreshDetailWeather();
   renderDetailSummary(profile);
   renderDetailChart(profile);
   loadPlaceLabels(profile);
@@ -214,6 +215,7 @@ function initDetailWhenButton() {
   dateInput.addEventListener('change', () => {
     selectedForecastDate = dateInput.value;
     btn.textContent = dateInput.value === todayIso ? 'Nå' : formatShortDate(dateInput.value);
+    refreshDetailWeather();
   });
 }
 
@@ -263,6 +265,7 @@ function buildDetailModalSkeleton() {
           </div>
         </div>
       </div>
+      <div id="loype-detail-weather" class="loype-detail-weather hidden"></div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
     <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>

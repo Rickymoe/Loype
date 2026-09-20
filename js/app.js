@@ -13,7 +13,12 @@ function initMap() {
     // Begge nederst til høyre — TOP_RIGHT kolliderte med panelet på smale
     // mobilskjermer, der panelet dekker mer enn halve bredden. Google
     // stabler kontroller på samme posisjon uten at de overlapper hverandre.
-    mapTypeControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
+    // Kart/Satellitt som full to-knappersrad ble likevel bred nok til å
+    // dekke ruten/stedsnavn på mobil — DROPDOWN_MENU gir én smal knapp.
+    mapTypeControlOptions: {
+      position: google.maps.ControlPosition.RIGHT_BOTTOM,
+      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+    },
     streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
   });
 

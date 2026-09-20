@@ -335,7 +335,7 @@ function renderDetailChart(profile) {
     // for punktet der pekeren faktisk treffer — interpolert mellom de to
     // nærmeste rutepunktene, ikke bare verdien ved enden av segmentet.
     const hoverIndicator = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    hoverIndicator.setAttribute('r', '5');
+    hoverIndicator.setAttribute('r', '10');
     hoverIndicator.setAttribute('fill', LOYPE_LINE_COLOR);
     hoverIndicator.setAttribute('stroke', '#fff');
     hoverIndicator.setAttribute('stroke-width', '2');

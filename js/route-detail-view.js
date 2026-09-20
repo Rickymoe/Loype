@@ -83,6 +83,27 @@ function buildCumulativeTimeProfile(profile, paceSecPerKm) {
   return cumSeconds;
 }
 
+// Kumulativt energiforbruk til hvert punkt i profilen — samme ACSM-modell
+// som segmentEnergyKcal, regnet direkte fra avstandsprofilen.
+function buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, isRunning) {
+  const speedMetersPerMin = 60000 / paceSecPerKm;
+  const cumKcal = [0];
+  for (let i = 1; i < profile.length; i++) {
+    const segKm = profile[i].distKm - profile[i - 1].distKm;
+    if (segKm <= 0) {
+      cumKcal.push(cumKcal[i - 1]);
+      continue;
+    }
+    const grade = Math.max(-0.4, Math.min(0.4, (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000)));
+    const vo2 = isRunning
+      ? 0.2 * speedMetersPerMin + 0.9 * speedMetersPerMin * grade + 3.5
+      : 0.1 * speedMetersPerMin + 1.8 * speedMetersPerMin * grade + 3.5;
+    const minutes = (segKm * 1000) / speedMetersPerMin;
+    cumKcal.push(cumKcal[i - 1] + (vo2 * weightKg / 1000) * 5 * minutes);
+  }
+  return cumKcal;
+}
+
 let detailModal = null;
 
 function openRouteDetailView() {
@@ -160,6 +181,10 @@ function renderDetailChart(profile) {
   const rulerX = plotRight + DEPTH_DX + 25;
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const cumSeconds = paceSecPerKm ? buildCumulativeTimeProfile(profile, paceSecPerKm) : null;
+  const weightKg = parseFloat(loadProfile().weight);
+  const cumKcal = (paceSecPerKm && weightKg)
+    ? buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, paceMode === 'run')
+    : null;
 
   const totalKm = profile[profile.length - 1].distKm;
   const elevations = profile.map(p => p.elevation);
@@ -225,9 +250,8 @@ function renderDetailChart(profile) {
     : 0;
   poly([lastBase, lastFront, lastBackFront, lastBackBase], GRADE_BUCKETS[gradeBucketIndex(lastGrade)].dark);
 
-  // --- Prikk for hvert punkt du faktisk klikket, langs ridgen. Hover viser
-  // avstand/høyde/tid for ALLE punkter (native SVG-tooltip via <title>). ---
-  frontPts.forEach((p, i) => {
+  // --- Prikk for hvert punkt du faktisk klikket, langs ridgen ---
+  frontPts.forEach(p => {
     const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
     dot.setAttribute('cx', String(p.x));
     dot.setAttribute('cy', String(p.y));
@@ -235,30 +259,42 @@ function renderDetailChart(profile) {
     dot.setAttribute('fill', LOYPE_LINE_COLOR);
     dot.setAttribute('stroke', '#fff');
     dot.setAttribute('stroke-width', '2');
-
-    const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-    const timePart = cumSeconds ? ` · ${formatDuration(cumSeconds[i])}` : '';
-    title.textContent = `${profile[i].distKm.toFixed(2)} km · ${Math.round(profile[i].elevation)} m${timePart}`;
-    dot.appendChild(title);
-
     svg.appendChild(dot);
   });
 
-  // --- Svevende tidslinje: en lett stiplet linje over terrenget, med tid
-  // trukket frem ved start, slutt og høyeste punkt. Alle andre punkter har
-  // fortsatt tiden sin tilgjengelig via hover (se prikkene over). ---
+  // --- Svevende linje over terrenget: følger høydeprofilen, løftet opp et
+  // fast antall piksler. Hover på et hvilket som helst punkt viser tid og
+  // energiforbruk dit; ved start, topp og slutt trekkes tiden i tillegg
+  // frem med en egen etikett. ---
   if (cumSeconds) {
-    const floatY = 38;
+    const LINE_LIFT = 30;
+    const linePts = frontPts.map(p => ({ x: p.x, y: Math.max(20, p.y - LINE_LIFT) }));
 
-    const floatLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    floatLine.setAttribute('x1', String(plotLeft));
-    floatLine.setAttribute('y1', String(floatY));
-    floatLine.setAttribute('x2', String(plotRight));
-    floatLine.setAttribute('y2', String(floatY));
-    floatLine.setAttribute('stroke', '#bbb');
-    floatLine.setAttribute('stroke-width', '1');
-    floatLine.setAttribute('stroke-dasharray', '4,4');
-    svg.appendChild(floatLine);
+    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    line.setAttribute('points', linePts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
+    line.setAttribute('fill', 'none');
+    line.setAttribute('stroke', '#e53935');
+    line.setAttribute('stroke-width', '3');
+    line.setAttribute('stroke-linejoin', 'round');
+    line.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(line);
+
+    linePts.forEach((p, i) => {
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', String(p.x));
+      dot.setAttribute('cy', String(p.y));
+      dot.setAttribute('r', '3');
+      dot.setAttribute('fill', '#fff');
+      dot.setAttribute('stroke', '#e53935');
+      dot.setAttribute('stroke-width', '2');
+
+      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      const energyPart = cumKcal ? ` · ${Math.round(cumKcal[i] * 4.184)} kJ / ${Math.round(cumKcal[i])} kcal` : '';
+      title.textContent = `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${energyPart}`;
+      dot.appendChild(title);
+
+      svg.appendChild(dot);
+    });
 
     let peakIndex = 0;
     for (let i = 1; i < profile.length; i++) {
@@ -267,11 +303,11 @@ function renderDetailChart(profile) {
     const keyIndexes = [...new Set([0, peakIndex, profile.length - 1])];
 
     keyIndexes.forEach(i => {
-      const x = frontPts[i].x;
+      const x = linePts[i].x;
 
       const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
       tick.setAttribute('x1', String(x));
-      tick.setAttribute('y1', String(floatY));
+      tick.setAttribute('y1', String(linePts[i].y));
       tick.setAttribute('x2', String(x));
       tick.setAttribute('y2', String(frontPts[i].y));
       tick.setAttribute('stroke', '#999');
@@ -279,16 +315,9 @@ function renderDetailChart(profile) {
       tick.setAttribute('stroke-dasharray', '3,3');
       svg.appendChild(tick);
 
-      const tickDot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      tickDot.setAttribute('cx', String(x));
-      tickDot.setAttribute('cy', String(floatY));
-      tickDot.setAttribute('r', '2.5');
-      tickDot.setAttribute('fill', '#999');
-      svg.appendChild(tickDot);
-
       const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       label.setAttribute('x', String(Math.min(Math.max(x, plotLeft + 20), plotRight - 20)));
-      label.setAttribute('y', String(floatY - 8));
+      label.setAttribute('y', String(linePts[i].y - 8));
       label.setAttribute('text-anchor', 'middle');
       label.setAttribute('font-size', '11');
       label.setAttribute('font-weight', '600');

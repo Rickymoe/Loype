@@ -109,18 +109,25 @@ function toggleIconPicker(e) {
 function saveFavoriteWithIcon(icon) {
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
   const points = routePoints.map(p => [Math.round(p.lat * 1e5) / 1e5, Math.round(p.lng * 1e5) / 1e5]);
+  // Lagres sammen med punktene slik at innlasting er øyeblikkelig og ikke
+  // avhenger av at Kartverket/Open-Elevation svarer på nytt hver gang.
+  const elevations = routeElevations.map(e => (e === undefined || e === null ? null : Math.round(e * 10) / 10));
 
   const favorites = loadFavorites();
-  favorites.push({ icon, points, mirror, savedAt: new Date().toISOString() });
+  favorites.push({ icon, points, elevations, mirror, savedAt: new Date().toISOString() });
   saveFavoritesList(favorites);
   renderFavoritesIcons();
 }
 
-// Samme flyt som loadSharedRouteFromUrl (route-export.js): tegner opp
-// punktene med det samme og henter høyde på nytt i etterkant.
+// Bruker lagret høyde direkte når den finnes (øyeblikkelig, ingen nettverk).
+// Eldre favoritter uten lagret høyde, eller enkeltpunkter som av en eller
+// annen grunn manglet høyde ved lagring, faller tilbake til å hente kun de
+// manglende punktene på nytt.
 function loadFavoriteRoute(fav) {
   routePoints = fav.points.map(([lat, lng]) => ({ lat, lng }));
-  routeElevations = routePoints.map(() => undefined);
+  routeElevations = (fav.elevations && fav.elevations.length === routePoints.length)
+    ? fav.elevations.map(e => (e === null ? undefined : e))
+    : routePoints.map(() => undefined);
   undoStack = [];
   document.getElementById('loype-mirror-checkbox').checked = !!fav.mirror;
 
@@ -133,13 +140,18 @@ function loadFavoriteRoute(fav) {
   routePoints.forEach(p => bounds.extend(p));
   map.fitBounds(bounds);
 
-  fetchRouteElevation(routePoints)
+  const missingIndexes = routeElevations
+    .map((e, i) => (e === undefined ? i : -1))
+    .filter(i => i !== -1);
+  if (missingIndexes.length === 0) return;
+
+  fetchRouteElevation(missingIndexes.map(i => routePoints[i]))
     .then(elevations => {
-      routeElevations = elevations;
+      missingIndexes.forEach((i, j) => { routeElevations[i] = elevations[j]; });
       updateDistanceAndChart();
     })
     .catch(() => {
-      showLoypeError('Kunne ikke hente høydedata for favorittruten.');
+      showLoypeError('Kunne ikke hente høydedata for enkelte punkter i favorittruten.');
     });
 }
 

@@ -521,7 +521,9 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   right: 6px;
   width: 16px;
   height: 16px;
-  color: rgba(0, 0, 0, 0.35);
+  /* Var rgba(0,0,0,.35) — målt til ~2,7:1 mot bakgrunnen, under WCAG sitt
+     krav på 3:1 for meningsbærende grafikk. */
+  color: var(--color-text-soft);
   pointer-events: none;
 }
 

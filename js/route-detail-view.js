@@ -65,6 +65,16 @@ function gradeBucketIndex(grade) {
   return GRADE_BUCKETS.findIndex(b => grade < b.max);
 }
 
+// Fargen på energilinja følger fortegnet helning (i motsetning til
+// terrengfargen over, som kun bryr seg om oppoverbakke): nedover er billig
+// (grønt), flatt er nøytralt, oppover er dyrt (rødt/oransje).
+function energyLineColor(grade) {
+  if (grade < -0.03) return '#43a047';
+  if (grade < 0.02) return '#ffb300';
+  if (grade < 0.08) return '#ff7043';
+  return '#e53935';
+}
+
 // Kumulativ, høydejustert reisetid til hvert punkt i profilen — samme
 // grad-avhengige modell som segmentTimeSeconds, men regnet direkte fra
 // avstandsprofilen (som også dekker det speilede returbenet).
@@ -290,14 +300,22 @@ function renderDetailChart(profile) {
     const LINE_LIFT = 30;
     const linePts = frontPts.map(p => ({ x: p.x, y: Math.max(20, p.y - LINE_LIFT) }));
 
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
-    line.setAttribute('points', linePts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
-    line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', LOYPE_LINE_COLOR);
-    line.setAttribute('stroke-width', '3');
-    line.setAttribute('stroke-linejoin', 'round');
-    line.setAttribute('stroke-linecap', 'round');
-    svg.appendChild(line);
+    // Linja tegnes som ett segment per delstrekning, hver farget etter
+    // hvor billig/dyr akkurat den biten er energimessig.
+    for (let i = 1; i < linePts.length; i++) {
+      const segKm = profile[i].distKm - profile[i - 1].distKm;
+      const grade = segKm > 0 ? (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000) : 0;
+
+      const seg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      seg.setAttribute('x1', String(linePts[i - 1].x));
+      seg.setAttribute('y1', String(linePts[i - 1].y));
+      seg.setAttribute('x2', String(linePts[i].x));
+      seg.setAttribute('y2', String(linePts[i].y));
+      seg.setAttribute('stroke', energyLineColor(grade));
+      seg.setAttribute('stroke-width', '3');
+      seg.setAttribute('stroke-linecap', 'round');
+      svg.appendChild(seg);
+    }
 
     // Rene visuelle prikker ved hvert punkt — ikke interaktive selv, siden
     // treffsonen under (hitPath) dekker hele linja sammenhengende.
@@ -342,6 +360,10 @@ function renderDetailChart(profile) {
       while (i < linePts.length - 1 && linePts[i].x < x) i++;
       const x0 = linePts[i - 1].x, x1 = linePts[i].x;
       const frac = x1 > x0 ? (x - x0) / (x1 - x0) : 0;
+
+      const segKm = profile[i].distKm - profile[i - 1].distKm;
+      const grade = segKm > 0 ? (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000) : 0;
+      hoverIndicator.setAttribute('fill', energyLineColor(grade));
 
       const distKm = profile[i - 1].distKm + frac * (profile[i].distKm - profile[i - 1].distKm);
       const seconds = cumSeconds[i - 1] + frac * (cumSeconds[i] - cumSeconds[i - 1]);

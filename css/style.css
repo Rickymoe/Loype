@@ -383,6 +383,12 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   font-size: 13px;
   color: #444;
   margin-top: -4px;
+  margin-bottom: 4px;
+}
+
+.loype-detail-rain-window {
+  font-size: 12px;
+  color: #1a73e8;
   margin-bottom: 12px;
 }
 

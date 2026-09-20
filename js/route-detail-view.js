@@ -147,6 +147,7 @@ function openRouteDetailView() {
   initDetailPaceButtons();
   initDetailWhenButton();
   refreshDetailWeather();
+  refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
   renderDetailChart(profile);
   loadPlaceLabels(profile);
@@ -216,6 +217,7 @@ function initDetailWhenButton() {
     selectedForecastDate = dateInput.value;
     btn.textContent = dateInput.value === todayIso ? 'Nå' : formatShortDate(dateInput.value);
     refreshDetailWeather();
+    refreshRainWindowIfApplicable();
   });
 }
 
@@ -228,11 +230,27 @@ function refreshDetailView() {
   if (!currentProfile) return;
   renderDetailSummary(currentProfile);
   renderDetailChart(currentProfile);
+  refreshRainWindowIfApplicable();
   if (cachedPlaceNames) {
     applyPlaceLabels(currentProfile, cachedPlaceNames);
   } else {
     loadPlaceLabels(currentProfile);
   }
+}
+
+// Ruteestimatets varighet avgjør hvor mange sammenhengende timer det
+// tørreste vinduet må dekke — så dette må regnes på nytt hver gang farten
+// eller Løp/Gå-modusen endres, ikke bare når dato bytter.
+function refreshRainWindowIfApplicable() {
+  const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
+  if (!paceSecPerKm) {
+    refreshDetailRainWindow(0);
+    return;
+  }
+  const mirror = document.getElementById('loype-mirror-checkbox').checked;
+  let seconds = segmentTimeSeconds(paceSecPerKm, false);
+  if (mirror) seconds += segmentTimeSeconds(paceSecPerKm, true);
+  refreshDetailRainWindow(seconds / 3600);
 }
 
 function closeRouteDetailView() {
@@ -266,6 +284,7 @@ function buildDetailModalSkeleton() {
         </div>
       </div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden"></div>
+      <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden"></div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
     <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>

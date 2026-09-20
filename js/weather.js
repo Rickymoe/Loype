@@ -72,6 +72,78 @@ function renderDetailWeather(weather) {
   el.classList.remove('hidden');
 }
 
+// Henter hele time-for-time-serien for nedbør (kun der MET faktisk gir
+// timesoppløsning, dvs. de nærmeste ~48 timene — next_1_hours mangler
+// lenger frem, og da lar vi rett og slett vinduet være tomt).
+async function fetchHourlyPrecipitation(lat, lng) {
+  const resp = await fetch(`${YR_LOCATIONFORECAST_URL}?lat=${lat.toFixed(4)}&lon=${lng.toFixed(4)}`);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+  const data = await resp.json();
+  return data.properties.timeseries
+    .filter(ts => ts.data.next_1_hours)
+    .map(ts => ({
+      time: new Date(ts.time),
+      precipitation: ts.data.next_1_hours.details?.precipitation_amount ?? 0,
+    }));
+}
+
+// Finner det tørreste SAMMENHENGENDE vinduet som er langt nok til hele
+// ruten (ikke bare den tørreste enkelttimen) — krever et fullt, ubrutt
+// vindu innenfor time-for-time-dekningen for den valgte dagen.
+function findDriestWindow(hourly, isoDate, durationHours) {
+  const dayStart = new Date(`${isoDate}T00:00:00`);
+  const dayEnd = new Date(`${isoDate}T23:59:59`);
+  const dayEntries = hourly.filter(h => h.time >= dayStart && h.time <= dayEnd);
+
+  const slots = Math.max(1, Math.round(durationHours));
+  if (dayEntries.length < slots) return null;
+
+  let best = null;
+  for (let i = 0; i + slots <= dayEntries.length; i++) {
+    const windowEntries = dayEntries.slice(i, i + slots);
+    const total = windowEntries.reduce((sum, h) => sum + h.precipitation, 0);
+    if (!best || total < best.total) {
+      best = {
+        start: windowEntries[0].time,
+        end: new Date(windowEntries[windowEntries.length - 1].time.getTime() + 3600000),
+        total,
+      };
+    }
+  }
+  return best;
+}
+
+function formatClock(d) {
+  return d.toLocaleTimeString('no-NO', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function refreshDetailRainWindow(durationHours) {
+  const el = document.getElementById('loype-detail-rain-window');
+  if (!el || !currentProfile || !durationHours) {
+    if (el) el.classList.add('hidden');
+    return;
+  }
+  const start = currentProfile[0];
+
+  try {
+    const hourly = await fetchHourlyPrecipitation(start.lat, start.lng);
+    if (!document.getElementById('loype-detail-rain-window')) return; // modal lukket i mellomtiden
+
+    const window = findDriestWindow(hourly, selectedForecastDate, durationHours);
+    if (!window) {
+      el.classList.add('hidden');
+      return;
+    }
+
+    el.textContent = window.total < 0.1
+      ? `🌂 Beste vindu: kl. ${formatClock(window.start)}–${formatClock(window.end)} (tørt)`
+      : `🌂 Beste vindu: kl. ${formatClock(window.start)}–${formatClock(window.end)} (~${window.total.toFixed(1)} mm)`;
+    el.classList.remove('hidden');
+  } catch (err) {
+    el.classList.add('hidden');
+  }
+}
+
 async function refreshDetailWeather() {
   const el = document.getElementById('loype-detail-weather');
   if (!currentProfile || !el) return;

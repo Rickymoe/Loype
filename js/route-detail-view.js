@@ -146,6 +146,7 @@ function openRouteDetailView() {
   buildDetailModalSkeleton();
   initDetailPaceButtons();
   initDetailWhenButton();
+  document.getElementById('loype-detail-ask-ai-btn').addEventListener('click', askAiAboutRoute);
   refreshDetailWeather();
   refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
@@ -274,6 +275,30 @@ function refreshRainWindowIfApplicable() {
   refreshDetailRainWindow(seconds / 3600);
 }
 
+// Gjenbruker teksten som allerede står i detaljvisningen (oppsummering,
+// vær, tørreste vindu) i stedet for å regne alt ut på nytt — unngår at
+// spørringen kommer ut av synk med det brukeren faktisk ser.
+// "?q="-parameteret på chatgpt.com er ikke offisielt dokumentert og kan
+// slutte å virke uten varsel — ingen annen stor AI-chat har noe tilsvarende
+// i dag (sjekket: Perplexity har et lignende uoffisielt parameter, Claude.ai
+// har ingenting).
+function askAiAboutRoute() {
+  const summary = document.getElementById('loype-detail-summary')?.textContent || '';
+  const weatherEl = document.getElementById('loype-detail-weather');
+  const rainEl = document.getElementById('loype-detail-rain-window');
+
+  const weather = weatherEl && !weatherEl.classList.contains('hidden') ? weatherEl.textContent : '';
+  const rain = rainEl && !rainEl.classList.contains('hidden') ? rainEl.textContent : '';
+
+  const lines = [`Jeg planlegger en tur: ${summary}.`];
+  if (weather) lines.push(`Værmelding: ${weather}.`);
+  if (rain) lines.push(`${rain}.`);
+  lines.push('Har du noen tips til denne turen?');
+
+  const url = `https://chatgpt.com/?q=${encodeURIComponent(lines.join(' '))}`;
+  window.open(url, '_blank', 'noopener');
+}
+
 function closeRouteDetailView() {
   if (detailModal) {
     detailModal.remove();
@@ -306,6 +331,7 @@ function buildDetailModalSkeleton() {
       </div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden"></div>
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden"></div>
+      <button id="loype-detail-ask-ai-btn" class="loype-btn loype-detail-ask-ai-btn">🤖 Spør ChatGPT om denne turen</button>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
     <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>

@@ -415,6 +415,12 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   margin-bottom: 12px;
 }
 
+.loype-detail-ask-ai-btn {
+  display: block;
+  width: auto;
+  margin-bottom: 14px;
+}
+
 .loype-detail-controls {
   display: flex;
   align-items: center;

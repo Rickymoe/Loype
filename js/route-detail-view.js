@@ -416,7 +416,7 @@ function buildDetailModalSkeleton() {
         </button>
       </div>
       <div class="loype-detail-legend">
-        <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#43a047"></span>Nedover (billig)</span>
+        <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#43a047"></span>Nedover</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ffb300"></span>Flatt</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ff7043"></span>Bratt</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#e53935"></span>Svært bratt</span>

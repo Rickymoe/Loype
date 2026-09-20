@@ -48,10 +48,12 @@ function initProfile() {
 
   function persist() {
     saveProfile({
+      ...loadProfile(),
       weight: weightInput.value,
       height: heightInput.value,
     });
     updateBmiDisplay();
+    updateEstimatedEnergy();
   }
 
   weightInput.addEventListener('input', persist);

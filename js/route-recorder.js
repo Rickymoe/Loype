@@ -330,6 +330,7 @@ function updateDistanceAndChart() {
   }
   renderElevationChart(known, km);
   updateEstimatedTime();
+  updateEstimatedEnergy();
 }
 
 function parsePaceToSecondsPerKm(input) {
@@ -402,6 +403,63 @@ function updateEstimatedTime() {
 
   timeEl.textContent = `Estimert tid: ${formatDuration(seconds)} (høydejustert)`;
   timeEl.classList.remove('hidden');
+}
+
+// ACSM sine metabolske ligninger regner oksygenopptak (VO2, ml/kg/min) ut fra
+// fart og stigning. Ligningene er validert med fast fart per underlag, så i
+// motsetning til tidsestimatet (som senker farten i bakker) brukes brukerens
+// innstilte fart uendret her — stigningen alene gir det økte forbruket.
+function segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, reverseGrade) {
+  const speedMetersPerMin = 60000 / paceSecPerKm;
+  let kcal = 0;
+  for (let i = 1; i < routePoints.length; i++) {
+    const a = routePoints[i - 1];
+    const b = routePoints[i];
+    const segKm = turf.distance(
+      turf.point([a.lng, a.lat]),
+      turf.point([b.lng, b.lat]),
+      { units: 'kilometers' }
+    );
+    if (segKm === 0) continue;
+
+    let grade = 0;
+    const ea = routeElevations[i - 1];
+    const eb = routeElevations[i];
+    if (ea !== undefined && eb !== undefined) {
+      let dz = eb - ea;
+      if (reverseGrade) dz = -dz;
+      grade = Math.max(-0.4, Math.min(0.4, dz / (segKm * 1000)));
+    }
+
+    const vo2 = isRunning
+      ? 0.2 * speedMetersPerMin + 0.9 * speedMetersPerMin * grade + 3.5
+      : 0.1 * speedMetersPerMin + 1.8 * speedMetersPerMin * grade + 3.5;
+
+    const minutes = (segKm * 1000) / speedMetersPerMin;
+    kcal += (vo2 * weightKg / 1000) * 5 * minutes;
+  }
+  return kcal;
+}
+
+function updateEstimatedEnergy() {
+  const energyEl = document.getElementById('loype-energy-value');
+  const weightKg = parseFloat(loadProfile().weight);
+  const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
+  if (!weightKg || !paceSecPerKm || routePoints.length < 2) {
+    energyEl.classList.add('hidden');
+    return;
+  }
+  const mirror = document.getElementById('loype-mirror-checkbox').checked;
+  const isRunning = paceMode === 'run';
+
+  let kcal = segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, false);
+  if (mirror) {
+    kcal += segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, true);
+  }
+  const kj = kcal * 4.184;
+
+  energyEl.textContent = `Energi: ${Math.round(kj)} kJ / ${Math.round(kcal)} kcal`;
+  energyEl.classList.remove('hidden');
 }
 
 async function fetchAndStoreElevation(pt, index) {

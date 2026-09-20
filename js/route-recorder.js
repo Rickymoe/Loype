@@ -146,6 +146,8 @@ function clearRoute() {
 function updateLoypeControls() {
   document.getElementById('loype-undo-btn').disabled = routePoints.length === 0;
   document.getElementById('loype-clear-btn').disabled = routePoints.length === 0;
+  document.getElementById('loype-share-btn').disabled = routePoints.length < 2;
+  document.getElementById('loype-gpx-btn').disabled = routePoints.length < 2;
 }
 
 function showLoypeError(msg) {

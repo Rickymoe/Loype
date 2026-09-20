@@ -57,6 +57,11 @@
         <button id="loype-undo-btn" class="loype-btn" disabled>Angre siste punkt</button>
         <button id="loype-clear-btn" class="loype-btn" disabled>Tøm rute</button>
       </div>
+      <div class="loype-controls">
+        <button id="loype-share-btn" class="loype-btn" disabled>Del rute</button>
+        <button id="loype-gpx-btn" class="loype-btn" disabled>Last ned GPX</button>
+      </div>
+      <div id="loype-share-status" class="hidden"></div>
       <div id="loype-error-msg" class="hidden"></div>
       <div id="loype-result" class="hidden">
         <div id="loype-distance-value"></div>
@@ -87,6 +92,7 @@
   <script src="js/profile.js"></script>
   <script src="js/route-recorder.js"></script>
   <script src="js/route-detail-view.js"></script>
+  <script src="js/route-export.js"></script>
   <script src="js/app.js"></script>
   <script
     src="https://maps.googleapis.com/maps/api/js?key=%%GOOGLE_MAPS_API_KEY%%&libraries=marker&callback=initMap"

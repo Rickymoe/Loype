@@ -17,7 +17,9 @@ function initMap() {
   map.addListener('click', onLoypeRouteClick);
   map.addListener('rightclick', onLoypeRouteRightClick);
 
-  useMyLocationForRoute();
+  if (!loadSharedRouteFromUrl()) {
+    useMyLocationForRoute();
+  }
 }
 
 function initPanelCollapse(panelId, buttonId) {

@@ -112,9 +112,13 @@ function saveFavoriteWithIcon(icon) {
   // Lagres sammen med punktene slik at innlasting er øyeblikkelig og ikke
   // avhenger av at Kartverket/Open-Elevation svarer på nytt hver gang.
   const elevations = routeElevations.map(e => (e === undefined || e === null ? null : Math.round(e * 10) / 10));
+  // Vekt/høyde tatt med slik at tid/energi stemmer med det som faktisk var
+  // satt da ruten ble lagret, uten å avhenge av profilen som gjelder nå.
+  const weight = document.getElementById('loype-weight-input').value;
+  const height = document.getElementById('loype-height-input').value;
 
   const favorites = loadFavorites();
-  favorites.push({ icon, points, elevations, mirror, savedAt: new Date().toISOString() });
+  favorites.push({ icon, points, elevations, mirror, weight, height, savedAt: new Date().toISOString() });
   saveFavoritesList(favorites);
   renderFavoritesIcons();
 }
@@ -130,6 +134,15 @@ function loadFavoriteRoute(fav) {
     : routePoints.map(() => undefined);
   undoStack = [];
   document.getElementById('loype-mirror-checkbox').checked = !!fav.mirror;
+
+  if (fav.weight || fav.height) {
+    const weightInput = document.getElementById('loype-weight-input');
+    const heightInput = document.getElementById('loype-height-input');
+    if (fav.weight) weightInput.value = fav.weight;
+    if (fav.height) heightInput.value = fav.height;
+    saveProfile({ ...loadProfile(), weight: weightInput.value, height: heightInput.value });
+    updateBmiDisplay();
+  }
 
   redrawRoutePolyline();
   redrawRouteMarkers();

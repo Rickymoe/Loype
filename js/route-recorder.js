@@ -414,17 +414,20 @@ function segmentTimeSeconds(paceSecPerKm, reverseGrade) {
 function updateEstimatedTime() {
   const timeEl = document.getElementById('loype-time-value');
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
-  if (!paceSecPerKm || routePoints.length < 2) {
+  const weightKg = parseFloat(loadProfile().weight);
+  // Sykkelmodellen trenger vekt (inngår i massen); løp/gå trenger den ikke
+  // for selve tidsestimatet.
+  if (!paceSecPerKm || routePoints.length < 2 || (paceMode === 'bike' && !weightKg)) {
     timeEl.classList.add('hidden');
     return;
   }
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
 
-  let seconds = segmentTimeSeconds(paceSecPerKm, false);
+  let seconds = routeSegmentSeconds(paceSecPerKm, weightKg, false);
   if (mirror) {
     // Returveien følger samme delstrekninger baklengs — det som var
     // nedoverbakke på vei ut er oppoverbakke på vei tilbake.
-    seconds += segmentTimeSeconds(paceSecPerKm, true);
+    seconds += routeSegmentSeconds(paceSecPerKm, weightKg, true);
   }
 
   timeEl.textContent = `Estimert tid: ${formatDuration(seconds)} (høydejustert)`;
@@ -467,6 +470,91 @@ function segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, reverseGrade) {
   return kcal;
 }
 
+// Fysikkbasert sykkelmodell (i stedet for ACSM, som er laget for
+// ergometersykling og ikke passer utendørs helning/vind). Konstant tråkkeffekt
+// antas i flatt/oppover; nedover trappes effekten lineært ned mot null
+// (ren utforkjøring) — folk hviler jo bena i nedoverbakker. Per delstrekning
+// løses en tredjegradsligning (kraftbalanse) for farten den effekten gir.
+const BIKE_MASS_KG = 12;
+const BIKE_CRR = 0.005;
+const BIKE_CDA = 0.35;
+const BIKE_AIR_DENSITY = 1.225;
+const BIKE_EFFICIENCY = 0.22;
+const BIKE_DOWNHILL_REST_GRADE = 0.04;
+const GRAVITY = 9.81;
+
+// Kraftbalanse: effekt = tyngdekraft/rullemotstand-ledd (lineært i fart) +
+// luftmotstand (∝ fart³). Løses numerisk med binærsøk — funksjonen er
+// garantert å krysse null nøyaktig én gang for fart > 0, selv når det
+// lineære leddet er negativt (nedoverbakke, tyngdekraften bidrar).
+function solveBikeSpeedMs(power, grade, mass) {
+  const linearCoeff = mass * GRAVITY * (grade + BIKE_CRR);
+  const aeroCoeff = 0.5 * BIKE_CDA * BIKE_AIR_DENSITY;
+  const f = v => linearCoeff * v + aeroCoeff * v * v * v - power;
+
+  let lo = 0, hi = 30; // m/s, ca. 108 km/t — godt over noe realistisk utfor-fart
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (f(mid) < 0) lo = mid; else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+// Regner tid og energi sammen per delstrekning — begge trenger akkurat
+// samme kraft/fart-løsning, så vi unngår å løse tredjegradsligningen to ganger.
+function computeBikeSegmentStats(paceSecPerKm, weightKg, reverseGrade) {
+  const vFlat = 1000 / paceSecPerKm;
+  const mass = weightKg + BIKE_MASS_KG;
+  const pFlat = mass * GRAVITY * BIKE_CRR * vFlat + 0.5 * BIKE_CDA * BIKE_AIR_DENSITY * vFlat ** 3;
+
+  let seconds = 0;
+  let kcal = 0;
+  for (let i = 1; i < routePoints.length; i++) {
+    const a = routePoints[i - 1];
+    const b = routePoints[i];
+    const segKm = turf.distance(
+      turf.point([a.lng, a.lat]),
+      turf.point([b.lng, b.lat]),
+      { units: 'kilometers' }
+    );
+    if (segKm === 0) continue;
+
+    let grade = 0;
+    const ea = routeElevations[i - 1];
+    const eb = routeElevations[i];
+    if (ea !== undefined && eb !== undefined) {
+      let dz = eb - ea;
+      if (reverseGrade) dz = -dz;
+      grade = dz / (segKm * 1000);
+    }
+
+    const power = grade >= 0
+      ? pFlat
+      : pFlat * Math.max(0, 1 - Math.abs(grade) / BIKE_DOWNHILL_REST_GRADE);
+
+    const v = solveBikeSpeedMs(power, grade, mass);
+    const segSeconds = (segKm * 1000) / v;
+
+    seconds += segSeconds;
+    kcal += (power / BIKE_EFFICIENCY) * segSeconds / 4184;
+  }
+  return { seconds, kcal };
+}
+
+// Fasade som lar resten av appen spørre om tid/energi uten å bry seg om
+// hvilken modell som brukes under panseret.
+function routeSegmentSeconds(paceSecPerKm, weightKg, reverseGrade) {
+  return paceMode === 'bike'
+    ? computeBikeSegmentStats(paceSecPerKm, weightKg, reverseGrade).seconds
+    : segmentTimeSeconds(paceSecPerKm, reverseGrade);
+}
+
+function routeSegmentKcal(paceSecPerKm, weightKg, reverseGrade) {
+  return paceMode === 'bike'
+    ? computeBikeSegmentStats(paceSecPerKm, weightKg, reverseGrade).kcal
+    : segmentEnergyKcal(paceSecPerKm, weightKg, paceMode === 'run', reverseGrade);
+}
+
 function updateEstimatedEnergy() {
   const energyEl = document.getElementById('loype-energy-value');
   const weightKg = parseFloat(loadProfile().weight);
@@ -476,11 +564,10 @@ function updateEstimatedEnergy() {
     return;
   }
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
-  const isRunning = paceMode === 'run';
 
-  let kcal = segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, false);
+  let kcal = routeSegmentKcal(paceSecPerKm, weightKg, false);
   if (mirror) {
-    kcal += segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, true);
+    kcal += routeSegmentKcal(paceSecPerKm, weightKg, true);
   }
   const kj = kcal * 4.184;
 
@@ -503,17 +590,23 @@ async function fetchAndStoreElevation(pt, index) {
   }
 }
 
-// To hastigheter (løp/gå) huskes hver for seg per bruker, siden farten
-// naturlig er svært forskjellig mellom aktivitetene.
-const PACE_DEFAULTS = { run: '5:30', walk: '12:00' };
+// Tre hastigheter (løp/gå/sykkel) huskes hver for seg per bruker, siden
+// farten naturlig er svært forskjellig mellom aktivitetene.
+const PACE_DEFAULTS = { run: '5:30', walk: '12:00', bike: '2:30' };
+const PACE_MODE_BUTTON_IDS = { run: 'loype-pace-run-btn', walk: 'loype-pace-walk-btn', bike: 'loype-pace-bike-btn' };
 let paceMode = 'run';
+
+function syncPaceModeButtons(mode) {
+  Object.entries(PACE_MODE_BUTTON_IDS).forEach(([m, id]) => {
+    document.getElementById(id).classList.toggle('active', m === mode);
+  });
+}
 
 function setPaceMode(mode) {
   paceMode = mode;
   const profile = loadProfile();
   document.getElementById('loype-pace-input').value = profile[`pace_${mode}`] || PACE_DEFAULTS[mode];
-  document.getElementById('loype-pace-run-btn').classList.toggle('active', mode === 'run');
-  document.getElementById('loype-pace-walk-btn').classList.toggle('active', mode === 'walk');
+  syncPaceModeButtons(mode);
   saveProfile({ ...profile, paceMode: mode });
   updateDistanceAndChart();
 }
@@ -532,8 +625,9 @@ function initLoypePanel() {
     persistPaceValue();
     updateDistanceAndChart();
   });
-  document.getElementById('loype-pace-run-btn').addEventListener('click', () => setPaceMode('run'));
-  document.getElementById('loype-pace-walk-btn').addEventListener('click', () => setPaceMode('walk'));
+  Object.entries(PACE_MODE_BUTTON_IDS).forEach(([mode, id]) => {
+    document.getElementById(id).addEventListener('click', () => setPaceMode(mode));
+  });
   document.getElementById('loype-pace-reset-btn').addEventListener('click', () => {
     document.getElementById('loype-pace-input').value = PACE_DEFAULTS[paceMode];
     persistPaceValue();
@@ -545,8 +639,7 @@ function initLoypePanel() {
   const profile = loadProfile();
   paceMode = profile.paceMode || 'run';
   document.getElementById('loype-pace-input').value = profile[`pace_${paceMode}`] || PACE_DEFAULTS[paceMode];
-  document.getElementById('loype-pace-run-btn').classList.toggle('active', paceMode === 'run');
-  document.getElementById('loype-pace-walk-btn').classList.toggle('active', paceMode === 'walk');
+  syncPaceModeButtons(paceMode);
 }
 
 document.addEventListener('DOMContentLoaded', initLoypePanel);

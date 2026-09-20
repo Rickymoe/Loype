@@ -46,6 +46,7 @@
         <div class="loype-pace-mode">
           <button type="button" id="loype-pace-run-btn" class="loype-pace-mode-btn active">Løp</button>
           <button type="button" id="loype-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
+          <button type="button" id="loype-pace-bike-btn" class="loype-pace-mode-btn">Sykkel</button>
         </div>
         <div class="loype-pace-input-row">
           <input type="text" id="loype-pace-input" value="5:30" inputmode="numeric" />
@@ -85,8 +86,9 @@
     <h3>Om beregningene</h3>
     <ul>
       <li><strong>Høydeprofil:</strong> Kartverkets høydemodell i Norge, Open-Elevation utenfor Norge.</li>
-      <li><strong>Estimert tid:</strong> justeres per delstrekning etter helning – jo brattere, jo saktere.</li>
-      <li><strong>Energiforbruk:</strong> ACSM sine metabolske ligninger, ut fra vekt, fart og helning (krever at vekt er fylt ut).</li>
+      <li><strong>Estimert tid (løp/gå):</strong> justeres per delstrekning etter helning – jo brattere, jo saktere.</li>
+      <li><strong>Energiforbruk (løp/gå):</strong> ACSM sine metabolske ligninger, ut fra vekt, fart og helning (krever at vekt er fylt ut).</li>
+      <li><strong>Sykkel:</strong> fysikkbasert modell (tyngdekraft, rullemotstand, luftmotstand) i stedet for ACSM, som er laget for ergometersykling. Konstant tråkkeffekt i flatt/oppover; nedover trappes effekten ned mot null under 4 % helning (hvile i bena).</li>
       <li><strong>Vær:</strong> MET Norway (Yr) for rutens startpunkt. Velger du "i dag" vises situasjonen nå, ellers kl. 12 den dagen du velger.</li>
       <li><strong>BMI:</strong> vekt (kg) delt på høyde (m) i andre.</li>
       <li><strong>Væsketap:</strong> overslag basert på energiforbruk (75 % blir kroppsvarme, ~580 kcal fordampes per liter svette), justert opp for temperatur/luftfuktighet. Varierer mye person til person.</li>

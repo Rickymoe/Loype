@@ -114,6 +114,37 @@ function buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, isRunning
   return cumKcal;
 }
 
+// Sykkel-varianten av de to funksjonene over, slått sammen siden begge uansett
+// trenger samme kraft/fart-løsning per delstrekning (se route-recorder.js).
+function buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg) {
+  const vFlat = 1000 / paceSecPerKm;
+  const mass = weightKg + BIKE_MASS_KG;
+  const pFlat = mass * GRAVITY * BIKE_CRR * vFlat + 0.5 * BIKE_CDA * BIKE_AIR_DENSITY * vFlat ** 3;
+
+  const cumSeconds = [0];
+  const cumKcal = [0];
+  for (let i = 1; i < profile.length; i++) {
+    const segKm = profile[i].distKm - profile[i - 1].distKm;
+    if (segKm <= 0) {
+      cumSeconds.push(cumSeconds[i - 1]);
+      cumKcal.push(cumKcal[i - 1]);
+      continue;
+    }
+
+    const grade = (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000);
+    const power = grade >= 0
+      ? pFlat
+      : pFlat * Math.max(0, 1 - Math.abs(grade) / BIKE_DOWNHILL_REST_GRADE);
+
+    const v = solveBikeSpeedMs(power, grade, mass);
+    const segSeconds = (segKm * 1000) / v;
+
+    cumSeconds.push(cumSeconds[i - 1] + segSeconds);
+    cumKcal.push(cumKcal[i - 1] + (power / BIKE_EFFICIENCY) * segSeconds / 4184);
+  }
+  return { cumSeconds, cumKcal };
+}
+
 // Egen, momentan tooltip i stedet for nettleserens innebygde <title>-hover,
 // som alltid har en innebygd forsinkelse før den vises.
 function showDetailTooltip(text, e) {
@@ -155,22 +186,23 @@ function openRouteDetailView() {
   loadPlaceLabels(profile);
 }
 
-// Lar deg bytte Løp/Gå mens detaljvisningen er åpen, uten å måtte lukke den
-// for å bruke bryteren i hovedpanelet. Stedsnavn er ofte allerede hentet, så
-// vi gjenbruker dem i stedet for å spørre Kartverket på nytt ved hvert bytte.
+const DETAIL_PACE_BUTTON_IDS = {
+  run: 'loype-detail-pace-run-btn',
+  walk: 'loype-detail-pace-walk-btn',
+  bike: 'loype-detail-pace-bike-btn',
+};
+
+// Lar deg bytte Løp/Gå/Sykkel mens detaljvisningen er åpen, uten å måtte
+// lukke den for å bruke bryteren i hovedpanelet. Stedsnavn er ofte allerede
+// hentet, så vi gjenbruker dem i stedet for å spørre Kartverket på nytt.
 function initDetailPaceButtons() {
-  const runBtn = document.getElementById('loype-detail-pace-run-btn');
-  const walkBtn = document.getElementById('loype-detail-pace-walk-btn');
   syncDetailPaceButtons();
-  runBtn.addEventListener('click', () => {
-    setPaceMode('run');
-    syncDetailPaceButtons();
-    refreshDetailView();
-  });
-  walkBtn.addEventListener('click', () => {
-    setPaceMode('walk');
-    syncDetailPaceButtons();
-    refreshDetailView();
+  Object.entries(DETAIL_PACE_BUTTON_IDS).forEach(([mode, id]) => {
+    document.getElementById(id).addEventListener('click', () => {
+      setPaceMode(mode);
+      syncDetailPaceButtons();
+      refreshDetailView();
+    });
   });
 }
 
@@ -246,8 +278,9 @@ function initDetailWhenButton() {
 }
 
 function syncDetailPaceButtons() {
-  document.getElementById('loype-detail-pace-run-btn').classList.toggle('active', paceMode === 'run');
-  document.getElementById('loype-detail-pace-walk-btn').classList.toggle('active', paceMode === 'walk');
+  Object.entries(DETAIL_PACE_BUTTON_IDS).forEach(([mode, id]) => {
+    document.getElementById(id).classList.toggle('active', mode === paceMode);
+  });
 }
 
 function refreshDetailView() {
@@ -268,13 +301,14 @@ function refreshDetailView() {
 // eller Løp/Gå-modusen endres, ikke bare når dato bytter.
 function refreshRainWindowIfApplicable() {
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
-  if (!paceSecPerKm) {
+  const weightKg = parseFloat(loadProfile().weight);
+  if (!paceSecPerKm || (paceMode === 'bike' && !weightKg)) {
     refreshDetailRainWindow(0);
     return;
   }
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
-  let seconds = segmentTimeSeconds(paceSecPerKm, false);
-  if (mirror) seconds += segmentTimeSeconds(paceSecPerKm, true);
+  let seconds = routeSegmentSeconds(paceSecPerKm, weightKg, false);
+  if (mirror) seconds += routeSegmentSeconds(paceSecPerKm, weightKg, true);
   refreshDetailRainWindow(seconds / 3600);
 }
 
@@ -291,7 +325,7 @@ function buildAiQuery() {
   const rain = rainEl && !rainEl.classList.contains('hidden') ? rainEl.textContent : '';
   const hydration = hydrationEl && !hydrationEl.classList.contains('hidden') ? hydrationEl.textContent : '';
 
-  const activity = paceMode === 'run' ? 'Jeg skal løpe en tur' : 'Jeg skal gå en tur';
+  const activity = { run: 'Jeg skal løpe en tur', walk: 'Jeg skal gå en tur', bike: 'Jeg skal sykle en tur' }[paceMode];
   const lines = [`${activity}: ${summary}.`];
   if (weather) lines.push(`Værmelding: ${weather}.`);
   if (rain) lines.push(`${rain}.`);
@@ -349,6 +383,7 @@ function buildDetailModalSkeleton() {
           <div class="loype-pace-mode loype-detail-pace-mode">
             <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
             <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
+            <button type="button" id="loype-detail-pace-bike-btn" class="loype-pace-mode-btn">Sykkel</button>
           </div>
         </div>
       </div>
@@ -383,20 +418,20 @@ function renderDetailSummary(profile) {
 
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
+  const weightKg = parseFloat(loadProfile().weight);
+  const hasPaceInput = paceSecPerKm && (paceMode !== 'bike' || weightKg);
 
   let timeText = '';
-  if (paceSecPerKm) {
-    let seconds = segmentTimeSeconds(paceSecPerKm, false);
-    if (mirror) seconds += segmentTimeSeconds(paceSecPerKm, true);
+  if (hasPaceInput) {
+    let seconds = routeSegmentSeconds(paceSecPerKm, weightKg, false);
+    if (mirror) seconds += routeSegmentSeconds(paceSecPerKm, weightKg, true);
     timeText = ` · Estimert tid: ${formatDuration(seconds)}`;
   }
 
   let energyText = '';
-  const weightKg = parseFloat(loadProfile().weight);
   if (paceSecPerKm && weightKg) {
-    const isRunning = paceMode === 'run';
-    let kcal = segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, false);
-    if (mirror) kcal += segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, true);
+    let kcal = routeSegmentKcal(paceSecPerKm, weightKg, false);
+    if (mirror) kcal += routeSegmentKcal(paceSecPerKm, weightKg, true);
     energyText = ` · Energi: ${Math.round(kcal * 4.184)} kJ / ${Math.round(kcal)} kcal`;
   }
 
@@ -413,11 +448,22 @@ function renderDetailChart(profile) {
   const baseHeight = 22;
   const rulerX = plotRight + DEPTH_DX + 25;
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
-  const cumSeconds = paceSecPerKm ? buildCumulativeTimeProfile(profile, paceSecPerKm) : null;
   const weightKg = parseFloat(loadProfile().weight);
-  const cumKcal = (paceSecPerKm && weightKg)
-    ? buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, paceMode === 'run')
-    : null;
+
+  let cumSeconds = null;
+  let cumKcal = null;
+  if (paceMode === 'bike') {
+    if (paceSecPerKm && weightKg) {
+      const bikeProfile = buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg);
+      cumSeconds = bikeProfile.cumSeconds;
+      cumKcal = bikeProfile.cumKcal;
+    }
+  } else {
+    cumSeconds = paceSecPerKm ? buildCumulativeTimeProfile(profile, paceSecPerKm) : null;
+    cumKcal = (paceSecPerKm && weightKg)
+      ? buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, paceMode === 'run')
+      : null;
+  }
 
   const totalKm = profile[profile.length - 1].distKm;
   const elevations = profile.map(p => p.elevation);

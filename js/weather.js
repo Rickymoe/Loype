@@ -200,9 +200,8 @@ function computeRouteEnergyKcal() {
   if (!paceSecPerKm || !weightKg || routePoints.length < 2) return null;
 
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
-  const isRunning = paceMode === 'run';
-  let kcal = segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, false);
-  if (mirror) kcal += segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, true);
+  let kcal = routeSegmentKcal(paceSecPerKm, weightKg, false);
+  if (mirror) kcal += routeSegmentKcal(paceSecPerKm, weightKg, true);
   return kcal;
 }
 

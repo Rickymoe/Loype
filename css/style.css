@@ -505,6 +505,12 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   margin-bottom: 12px;
 }
 
+.loype-detail-hydration {
+  font-size: 12px;
+  color: #00838f;
+  margin-bottom: 12px;
+}
+
 .loype-detail-ai-row {
   display: flex;
   gap: 8px;

@@ -237,6 +237,7 @@ function initDetailWhenButton() {
     if (outOfRange) {
       document.getElementById('loype-detail-weather').classList.add('hidden');
       document.getElementById('loype-detail-rain-window').classList.add('hidden');
+      document.getElementById('loype-detail-hydration').classList.add('hidden');
     } else {
       refreshDetailWeather();
       refreshRainWindowIfApplicable();
@@ -254,6 +255,7 @@ function refreshDetailView() {
   renderDetailSummary(currentProfile);
   renderDetailChart(currentProfile);
   refreshRainWindowIfApplicable();
+  refreshHydrationIfApplicable();
   if (cachedPlaceNames) {
     applyPlaceLabels(currentProfile, cachedPlaceNames);
   } else {
@@ -283,14 +285,17 @@ function buildAiQuery() {
   const summary = document.getElementById('loype-detail-summary')?.textContent || '';
   const weatherEl = document.getElementById('loype-detail-weather');
   const rainEl = document.getElementById('loype-detail-rain-window');
+  const hydrationEl = document.getElementById('loype-detail-hydration');
 
   const weather = weatherEl && !weatherEl.classList.contains('hidden') ? weatherEl.textContent : '';
   const rain = rainEl && !rainEl.classList.contains('hidden') ? rainEl.textContent : '';
+  const hydration = hydrationEl && !hydrationEl.classList.contains('hidden') ? hydrationEl.textContent : '';
 
   const activity = paceMode === 'run' ? 'Jeg skal løpe en tur' : 'Jeg skal gå en tur';
   const lines = [`${activity}: ${summary}.`];
   if (weather) lines.push(`Værmelding: ${weather}.`);
   if (rain) lines.push(`${rain}.`);
+  if (hydration) lines.push(`${hydration}.`);
   lines.push('Har du noen tips til denne turen?');
 
   return lines.join(' ');
@@ -349,6 +354,7 @@ function buildDetailModalSkeleton() {
       </div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden"></div>
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden"></div>
+      <div id="loype-detail-hydration" class="loype-detail-hydration hidden"></div>
       <div class="loype-detail-ai-row">
         <button id="loype-detail-ask-ai-btn" class="loype-btn">🤖 Spør ChatGPT</button>
         <button id="loype-detail-copy-ai-btn" class="loype-btn loype-copy-btn" aria-label="Kopier spørring" title="Kopier for å lime inn i f.eks. Claude.ai">

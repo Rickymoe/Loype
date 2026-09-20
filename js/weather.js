@@ -141,6 +141,10 @@ async function refreshDetailRainWindow(durationHours) {
   }
 }
 
+// Siste vellykkede værhenting — lar oss regne væsketapet på nytt når fart
+// eller Løp/Gå endres, uten å måtte spørre MET Norway igjen for det alene.
+let lastWeatherResult = null;
+
 // Vær og soltider hentes parallelt og rendres i én omgang, slik at det ene
 // kallet aldri kan overskrive det andres resultat i den samme linja.
 async function refreshDetailWeather() {
@@ -160,9 +164,62 @@ async function refreshDetailWeather() {
 
   if (weatherResult.status !== 'fulfilled') {
     el.textContent = 'Kunne ikke hente værdata.';
+    document.getElementById('loype-detail-hydration')?.classList.add('hidden');
+    lastWeatherResult = null;
     return;
   }
 
   const sunHtml = sunResult.status === 'fulfilled' ? buildSunTimesHtml(sunResult.value) : '';
   el.innerHTML = buildWeatherLineHtml(weatherResult.value) + sunHtml;
+
+  lastWeatherResult = weatherResult.value;
+  renderHydration(weatherResult.value);
+}
+
+function refreshHydrationIfApplicable() {
+  if (lastWeatherResult) renderHydration(lastWeatherResult);
+}
+
+// Fysiologisk overslag, ikke en presis måling (varierer mye person til
+// person — genetikk, akklimatisering, klær):
+// 1) ~75 % av energiforbruket blir kroppsvarme, resten mekanisk arbeid.
+// 2) ~580 kcal må fordampes som svette per liter væske for å kvitte seg
+//    med den varmen.
+// 3) Jo varmere/mer fuktig, jo dårligere fordamper svetten — justeres opp.
+function estimateFluidLossLiters(energyKcal, tempC, humidityPct) {
+  const heatKcal = energyKcal * 0.75;
+  const baseSweatL = heatKcal / 580;
+  const tempFactor = 1 + Math.max(0, tempC - 15) * 0.03;
+  const humidityFactor = 1 + Math.max(0, humidityPct - 50) * 0.005;
+  return baseSweatL * tempFactor * humidityFactor;
+}
+
+function computeRouteEnergyKcal() {
+  const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
+  const weightKg = parseFloat(loadProfile().weight);
+  if (!paceSecPerKm || !weightKg || routePoints.length < 2) return null;
+
+  const mirror = document.getElementById('loype-mirror-checkbox').checked;
+  const isRunning = paceMode === 'run';
+  let kcal = segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, false);
+  if (mirror) kcal += segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, true);
+  return kcal;
+}
+
+// ACSM sin anbefaling (samme kilde som energiformelen): erstatt væske
+// tilsvarende 150 % av svettetapet under en økt.
+function renderHydration(weather) {
+  const el = document.getElementById('loype-detail-hydration');
+  if (!el) return;
+
+  const energyKcal = computeRouteEnergyKcal();
+  if (!energyKcal || weather.temp == null) {
+    el.classList.add('hidden');
+    return;
+  }
+
+  const sweatL = estimateFluidLossLiters(energyKcal, weather.temp, weather.humidity ?? 50);
+  const intakeL = sweatL * 1.5;
+  el.textContent = `💦 Estimert væsketap: ${sweatL.toFixed(1)} L · 🥤 Anbefalt inntak: ${intakeL.toFixed(1)} L`;
+  el.classList.remove('hidden');
 }

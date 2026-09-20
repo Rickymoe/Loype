@@ -438,6 +438,10 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 }
 
 #loype-error-msg {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
   margin-top: 8px;
   font-size: var(--fs-xs);
   color: var(--color-error);
@@ -445,6 +449,19 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   padding: 8px;
   border-radius: var(--radius-sm);
 }
+
+.loype-error-close {
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  color: var(--color-error);
+  font-size: var(--fs-lg);
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.loype-error-close:hover { opacity: 0.7; }
 
 #loype-result { margin-top: 10px; }
 

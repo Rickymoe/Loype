@@ -76,7 +76,7 @@ function useMyLocationForRoute() {
       map.setZoom(16);
     },
     () => {
-      showLoypeError('Fikk ikke tilgang til posisjonen din.');
+      showLoypeError('Fikk ikke tilgang til posisjonen din. Du kan fortsatt bruke kartet som normalt.');
     }
   );
 }
@@ -151,9 +151,25 @@ function updateLoypeControls() {
   updateFavoriteAddButtonState();
 }
 
+// Feilmeldinger (f.eks. avslått posisjonstilgang) forsvant tidligere aldri
+// av seg selv og hadde ingen måte å lukke dem på — de sto der resten av
+// økten uansett om brukeren brydde seg eller ikke.
 function showLoypeError(msg) {
   const el = document.getElementById('loype-error-msg');
-  el.textContent = msg;
+  el.innerHTML = '';
+
+  const text = document.createElement('span');
+  text.textContent = msg;
+
+  const closeBtn = document.createElement('button');
+  closeBtn.type = 'button';
+  closeBtn.className = 'loype-error-close';
+  closeBtn.setAttribute('aria-label', 'Lukk feilmelding');
+  closeBtn.textContent = '×';
+  closeBtn.addEventListener('click', hideLoypeError);
+
+  el.appendChild(text);
+  el.appendChild(closeBtn);
   el.classList.remove('hidden');
 }
 

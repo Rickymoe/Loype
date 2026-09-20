@@ -10,7 +10,10 @@ function initMap() {
     draggableCursor: 'crosshair',
     draggingCursor: 'crosshair',
     mapId: 'DEMO_MAP_ID',
-    mapTypeControlOptions: { position: google.maps.ControlPosition.TOP_RIGHT },
+    // Begge nederst til høyre — TOP_RIGHT kolliderte med panelet på smale
+    // mobilskjermer, der panelet dekker mer enn halve bredden. Google
+    // stabler kontroller på samme posisjon uten at de overlapper hverandre.
+    mapTypeControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
     streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
   });
 

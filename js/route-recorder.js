@@ -239,6 +239,13 @@ async function fetchOpenElevation(points) {
 // Kartverket gir Norges egen høyoppløselige høydemodell (gratis, ingen nøkkel),
 // men returnerer z: null utenfor Norge. Open-Elevation brukes kun som
 // reserveløsning for punkter Kartverket ikke dekker.
+// Høydemodellene returnerer av og til svakt negative verdier rett ved
+// kysten/over vann (modell-støy ved havnivå, ikke reell terrenghøyde) — det
+// leser som en feil i grafene ("-5 m"), så vi klemmer til 0 som gulv.
+function clampElevation(e) {
+  return e === null || e === undefined ? e : Math.max(0, e);
+}
+
 async function fetchRouteElevation(points) {
   let kartverketElevations;
   try {
@@ -252,14 +259,14 @@ async function fetchRouteElevation(points) {
     .filter(i => i !== -1);
 
   if (missingIndexes.length === 0) {
-    return kartverketElevations;
+    return kartverketElevations.map(clampElevation);
   }
 
   const fallbackPoints = missingIndexes.map(i => points[i]);
   const fallbackElevations = await fetchOpenElevation(fallbackPoints);
   const merged = [...kartverketElevations];
   missingIndexes.forEach((i, j) => { merged[i] = fallbackElevations[j]; });
-  return merged;
+  return merged.map(clampElevation);
 }
 
 function renderElevationChart(elevations, km) {

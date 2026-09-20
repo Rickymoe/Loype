@@ -84,7 +84,9 @@ function niceAxisBounds(min, max) {
   else if (normalized < 7) step = 5 * magnitude;
   else step = 10 * magnitude;
 
-  const niceMin = Math.floor(min / step) * step;
+  // Aldri under 0 — høydemodellen kan gi svak negativ "støy" over vann, og
+  // en akse som går under bakkenivå leser som en feil, ikke som data.
+  const niceMin = Math.max(0, Math.floor(min / step) * step);
   let niceMax = Math.ceil(max / step) * step;
   while (niceMax - niceMin < MIN_DISPLAY_RANGE) niceMax += step;
 

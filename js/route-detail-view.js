@@ -104,6 +104,31 @@ function buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, isRunning
   return cumKcal;
 }
 
+// Egen, momentan tooltip i stedet for nettleserens innebygde <title>-hover,
+// som alltid har en innebygd forsinkelse før den vises.
+function showDetailTooltip(text, e) {
+  const tooltip = document.getElementById('loype-detail-tooltip');
+  tooltip.textContent = text;
+  tooltip.classList.remove('hidden');
+  positionDetailTooltip(e);
+}
+
+function positionDetailTooltip(e) {
+  const tooltip = document.getElementById('loype-detail-tooltip');
+  tooltip.style.left = `${e.clientX + 14}px`;
+  tooltip.style.top = `${e.clientY + 14}px`;
+}
+
+function hideDetailTooltip() {
+  document.getElementById('loype-detail-tooltip').classList.add('hidden');
+}
+
+function attachHoverTooltip(el, text) {
+  el.addEventListener('mouseenter', e => showDetailTooltip(text, e));
+  el.addEventListener('mousemove', positionDetailTooltip);
+  el.addEventListener('mouseleave', hideDetailTooltip);
+}
+
 let detailModal = null;
 
 function openRouteDetailView() {
@@ -134,6 +159,7 @@ function buildDetailModalSkeleton() {
       <div id="loype-detail-summary"></div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
+    <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>
   `;
   document.body.appendChild(detailModal);
   document.getElementById('loype-detail-close').addEventListener('click', closeRouteDetailView);
@@ -291,10 +317,8 @@ function renderDetailChart(profile) {
       hit.setAttribute('stroke', 'transparent');
       hit.setAttribute('stroke-width', '16');
 
-      const hitTitle = document.createElementNS('http://www.w3.org/2000/svg', 'title');
       const hitEnergyPart = cumKcal ? ` · ${Math.round(cumKcal[i] * 4.184)} kJ / ${Math.round(cumKcal[i])} kcal` : '';
-      hitTitle.textContent = `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${hitEnergyPart}`;
-      hit.appendChild(hitTitle);
+      attachHoverTooltip(hit, `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${hitEnergyPart}`);
 
       svg.appendChild(hit);
     }
@@ -308,10 +332,8 @@ function renderDetailChart(profile) {
       dot.setAttribute('stroke', LOYPE_LINE_COLOR);
       dot.setAttribute('stroke-width', '2');
 
-      const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
       const energyPart = cumKcal ? ` · ${Math.round(cumKcal[i] * 4.184)} kJ / ${Math.round(cumKcal[i])} kcal` : '';
-      title.textContent = `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${energyPart}`;
-      dot.appendChild(title);
+      attachHoverTooltip(dot, `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${energyPart}`);
 
       svg.appendChild(dot);
     });

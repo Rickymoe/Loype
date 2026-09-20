@@ -284,6 +284,18 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   padding-right: 24px;
 }
 
+.loype-detail-tooltip {
+  position: fixed;
+  pointer-events: none;
+  background: rgba(26, 26, 46, 0.92);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  z-index: 1001;
+}
+
 #loype-detail-chart {
   width: 100%;
   height: auto;

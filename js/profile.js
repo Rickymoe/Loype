@@ -37,13 +37,22 @@ function updateBmiDisplay() {
   bmiEl.classList.remove('hidden');
 }
 
+// Ekte startverdier i stedet for kun placeholder-tekst — uten dette leser
+// f.eks. sykkel-tidsestimatet og energiberegningen vekt som tom/NaN helt
+// til brukeren har rørt feltet selv, og forsvinner stille uten forklaring.
+const DEFAULT_WEIGHT_KG = 75;
+const DEFAULT_HEIGHT_CM = 180;
+
 function initProfile() {
   const weightInput = document.getElementById('loype-weight-input');
   const heightInput = document.getElementById('loype-height-input');
   const profile = loadProfile();
 
-  if (profile.weight) weightInput.value = profile.weight;
-  if (profile.height) heightInput.value = profile.height;
+  weightInput.value = profile.weight || DEFAULT_WEIGHT_KG;
+  heightInput.value = profile.height || DEFAULT_HEIGHT_CM;
+  if (!profile.weight || !profile.height) {
+    saveProfile({ ...profile, weight: weightInput.value, height: heightInput.value });
+  }
   updateBmiDisplay();
 
   function persist() {

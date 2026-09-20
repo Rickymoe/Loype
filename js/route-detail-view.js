@@ -381,8 +381,8 @@ function buildDetailModalSkeleton() {
             <input type="date" id="loype-detail-date-input" />
           </div>
           <div class="loype-pace-mode loype-detail-pace-mode">
-            <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
             <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
+            <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
             <button type="button" id="loype-detail-pace-bike-btn" class="loype-pace-mode-btn">Sykkel</button>
           </div>
         </div>

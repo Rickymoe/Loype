@@ -804,7 +804,18 @@ async function loadPlaceLabels(profile) {
 }
 
 function initRouteDetailView() {
-  document.getElementById('loype-elevation-chart').addEventListener('click', openRouteDetailView);
+  const chart = document.getElementById('loype-elevation-chart');
+  chart.addEventListener('click', openRouteDetailView);
+  // Grafen er eneste inngang til detaljvisningen, men hadde ingen
+  // tabindex — tastaturbrukere hoppet rett forbi den uansett hvor mange
+  // ganger de trykket Tab. Enter/mellomrom er standard aktivering for
+  // role="button".
+  chart.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      openRouteDetailView();
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded', initRouteDetailView);

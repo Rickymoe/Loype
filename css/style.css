@@ -510,6 +510,11 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   cursor: pointer;
 }
 
+#loype-elevation-chart:focus-visible {
+  outline: 2px solid var(--loype-accent);
+  outline-offset: 2px;
+}
+
 .loype-expand-icon {
   position: absolute;
   top: 6px;

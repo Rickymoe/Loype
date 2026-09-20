@@ -273,7 +273,7 @@ function renderDetailChart(profile) {
     const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
     line.setAttribute('points', linePts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
     line.setAttribute('fill', 'none');
-    line.setAttribute('stroke', '#e53935');
+    line.setAttribute('stroke', LOYPE_LINE_COLOR);
     line.setAttribute('stroke-width', '3');
     line.setAttribute('stroke-linejoin', 'round');
     line.setAttribute('stroke-linecap', 'round');
@@ -305,7 +305,7 @@ function renderDetailChart(profile) {
       dot.setAttribute('cy', String(p.y));
       dot.setAttribute('r', '3');
       dot.setAttribute('fill', '#fff');
-      dot.setAttribute('stroke', '#e53935');
+      dot.setAttribute('stroke', LOYPE_LINE_COLOR);
       dot.setAttribute('stroke-width', '2');
 
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');

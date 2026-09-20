@@ -301,7 +301,10 @@ function initDetailWhenButton() {
 
 function syncDetailPaceButtons() {
   Object.entries(DETAIL_PACE_BUTTON_IDS).forEach(([mode, id]) => {
-    document.getElementById(id).classList.toggle('active', mode === paceMode);
+    const btn = document.getElementById(id);
+    const active = mode === paceMode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
   });
 }
 
@@ -448,7 +451,7 @@ function buildDetailModalSkeleton() {
             <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn loype-when-btn">Nå</button>
             <input type="date" id="loype-detail-date-input" tabindex="-1" />
           </div>
-          <div class="loype-pace-mode loype-detail-pace-mode">
+          <div class="loype-pace-mode loype-detail-pace-mode" role="group" aria-label="Aktivitet">
             <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
             <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
             <button type="button" id="loype-detail-pace-bike-btn" class="loype-pace-mode-btn">Sykkel</button>
@@ -459,7 +462,7 @@ function buildDetailModalSkeleton() {
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden" aria-live="polite"></div>
       <div id="loype-detail-hydration" class="loype-detail-hydration hidden" aria-live="polite"></div>
       <div class="loype-detail-ai-row">
-        <button id="loype-detail-ask-ai-btn" class="loype-btn">🤖 Spør ChatGPT</button>
+        <button id="loype-detail-ask-ai-btn" class="loype-btn loype-btn-primary">🤖 Spør ChatGPT</button>
         <button id="loype-detail-copy-ai-btn" class="loype-btn loype-copy-btn" aria-label="Kopier spørring" title="Kopier for å lime inn i f.eks. Claude.ai">
           <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <rect x="9" y="9" width="12" height="12" rx="2" stroke="currentColor" stroke-width="2" />
@@ -828,11 +831,22 @@ function addDetailLabel(profile, point, name) {
   svg.appendChild(label);
 }
 
+// Roterte etiketter vokser oppover fra grunnlinja — er toppunktet for nær
+// start eller slutt langs x-aksen, overlapper de to tekstene hverandre. I
+// så fall dropper vi ganske enkelt topp-etiketten (start/slutt vinner).
 function applyPlaceLabels(profile, names) {
   addDetailLabel(profile, profile[0], names.startName || 'Start');
   addDetailLabel(profile, profile[profile.length - 1], names.endName || 'Slutt');
+
   if (names.peakIndex !== 0 && names.peakIndex !== profile.length - 1) {
-    addDetailLabel(profile, profile[names.peakIndex], names.peakName || 'Høyeste punkt');
+    const totalKm = profile[profile.length - 1].distKm;
+    const minGapKm = Math.max(totalKm * 0.06, 0.05);
+    const peakDistKm = profile[names.peakIndex].distKm;
+    const farFromStart = peakDistKm - profile[0].distKm >= minGapKm;
+    const farFromEnd = totalKm - peakDistKm >= minGapKm;
+    if (farFromStart && farFromEnd) {
+      addDetailLabel(profile, profile[names.peakIndex], names.peakName || 'Høyeste punkt');
+    }
   }
 }
 

@@ -352,6 +352,14 @@ function renderElevationChart(elevations, km) {
     return `${x.toFixed(1)},${y.toFixed(1)}`;
   }).join(' ');
 
+  // Antyder samme visuelle språk som den store detaljgrafen (linje + fylt
+  // flate under) i stedet for å være to helt urelaterte diagramtyper.
+  const area = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+  area.setAttribute('points', `${plotLeft},${plotBottom} ${pointsAttr} ${plotRight},${plotBottom}`);
+  area.setAttribute('fill', LOYPE_LINE_COLOR);
+  area.setAttribute('fill-opacity', '0.15');
+  svg.appendChild(area);
+
   const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
   polyline.setAttribute('points', pointsAttr);
   polyline.setAttribute('fill', 'none');
@@ -633,7 +641,10 @@ let paceMode = 'run';
 
 function syncPaceModeButtons(mode) {
   Object.entries(PACE_MODE_BUTTON_IDS).forEach(([m, id]) => {
-    document.getElementById(id).classList.toggle('active', m === mode);
+    const btn = document.getElementById(id);
+    const active = m === mode;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', String(active));
   });
 }
 
@@ -651,10 +662,35 @@ function persistPaceValue() {
   saveProfile({ ...profile, [`pace_${paceMode}`]: document.getElementById('loype-pace-input').value, paceMode });
 }
 
+// Ett trykk arm-er en destruktiv handling ("Sikker?"), et andre trykk innen
+// noen sekunder utfører den. Unngår en avbrytende, nativ confirm()-dialog
+// samtidig som "Tøm rute" ikke lenger skjer på ett uhellstrykk.
+function armConfirmButton(btn, onConfirm, confirmText = 'Sikker?', timeoutMs = 3000) {
+  const original = btn.textContent;
+  let armed = false;
+  let timer = null;
+
+  btn.addEventListener('click', () => {
+    if (!armed) {
+      armed = true;
+      btn.textContent = confirmText;
+      timer = setTimeout(() => {
+        armed = false;
+        btn.textContent = original;
+      }, timeoutMs);
+      return;
+    }
+    clearTimeout(timer);
+    armed = false;
+    btn.textContent = original;
+    onConfirm();
+  });
+}
+
 function initLoypePanel() {
   document.getElementById('loype-geolocate-btn').addEventListener('click', useMyLocationForRoute);
   document.getElementById('loype-undo-btn').addEventListener('click', undoLastRoutePoint);
-  document.getElementById('loype-clear-btn').addEventListener('click', clearRoute);
+  armConfirmButton(document.getElementById('loype-clear-btn'), clearRoute);
   document.getElementById('loype-mirror-checkbox').addEventListener('change', updateDistanceAndChart);
   document.getElementById('loype-pace-input').addEventListener('input', () => {
     persistPaceValue();

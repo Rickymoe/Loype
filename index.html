@@ -42,11 +42,11 @@
         <div id="loype-bmi-value" class="hidden" aria-live="polite"></div>
       </div>
       <div class="field-group">
-        <label for="loype-pace-input">Snittid flatterreng (min/km)</label>
-        <div class="loype-pace-mode">
-          <button type="button" id="loype-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
-          <button type="button" id="loype-pace-run-btn" class="loype-pace-mode-btn active">Løp</button>
-          <button type="button" id="loype-pace-bike-btn" class="loype-pace-mode-btn">Sykkel</button>
+        <label for="loype-pace-input">Snittid flatt terreng (min/km)</label>
+        <div class="loype-pace-mode" role="group" aria-label="Aktivitet">
+          <button type="button" id="loype-pace-walk-btn" class="loype-pace-mode-btn" aria-pressed="false">Gå</button>
+          <button type="button" id="loype-pace-run-btn" class="loype-pace-mode-btn active" aria-pressed="true">Løp</button>
+          <button type="button" id="loype-pace-bike-btn" class="loype-pace-mode-btn" aria-pressed="false">Sykkel</button>
         </div>
         <div class="loype-pace-input-row">
           <input type="text" id="loype-pace-input" value="5:30" inputmode="numeric" />
@@ -55,7 +55,7 @@
       </div>
       <div class="loype-controls">
         <button id="loype-undo-btn" class="loype-btn" disabled>Angre siste punkt</button>
-        <button id="loype-clear-btn" class="loype-btn" disabled>Tøm rute</button>
+        <button id="loype-clear-btn" class="loype-btn loype-btn-danger" disabled>Tøm rute</button>
       </div>
       <div id="loype-error-msg" class="hidden" aria-live="assertive"></div>
       <div id="loype-result" class="hidden" aria-live="polite">

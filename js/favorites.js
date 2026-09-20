@@ -42,8 +42,18 @@ function renderFavoritesIcons() {
     del.className = 'loype-favorite-delete-badge';
     del.setAttribute('aria-label', 'Slett favoritt');
     del.textContent = '×';
+    // Første trykk arm-er sletting (badgen blir solid rød), andre trykk
+    // innen 3 sekunder utfører den — samme prinsipp som Tøm rute, bare
+    // vist som farge siden badgen er for liten til tekst.
     del.addEventListener('click', (e) => {
       e.stopPropagation();
+      if (!del.classList.contains('confirm-armed')) {
+        del.classList.add('confirm-armed');
+        clearTimeout(del._confirmTimer);
+        del._confirmTimer = setTimeout(() => del.classList.remove('confirm-armed'), 3000);
+        return;
+      }
+      clearTimeout(del._confirmTimer);
       const updated = loadFavorites();
       updated.splice(index, 1);
       saveFavoritesList(updated);

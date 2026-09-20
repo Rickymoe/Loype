@@ -203,14 +203,13 @@ function initDetailWhenButton() {
   selectedForecastDate = todayIso;
   btn.textContent = 'Nå';
 
-  // Datofeltet vises aldri selv — kun knappeteksten gjør. Klikk åpner bare
-  // nettleserens native datovelger-popup forankret i det usynlige feltet.
+  // Datofeltet ligger som et usynlig, men trykkbart lag oppå selve knappen
+  // (se CSS) og mottar tappet direkte — i stedet for at knappen trigger
+  // showPicker() via JS på et fjernt, krympet felt. iOS Safari forankrer
+  // sin native dato-hjul-picker til feltets egen posisjon/størrelse, og det
+  // viste seg upålitelig når feltet var 1×1px et annet sted i DOM-en.
   btn.addEventListener('click', () => {
-    if (dateInput.showPicker) {
-      dateInput.showPicker();
-    } else {
-      dateInput.focus();
-    }
+    if (dateInput.showPicker) dateInput.showPicker();
   });
 
   dateInput.addEventListener('change', () => {

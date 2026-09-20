@@ -236,6 +236,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .loype-controls {
   display: flex;
   gap: 8px;
+  margin-top: 10px;
   margin-bottom: 8px;
 }
 

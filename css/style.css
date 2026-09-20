@@ -374,6 +374,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   background: #e8f5e9;
   padding: 8px;
   border-radius: 6px;
+  overflow-wrap: break-word;
+  word-break: break-all;
 }
 
 #loype-error-msg {

@@ -40,14 +40,66 @@ ${trkpts}
   URL.revokeObjectURL(url);
 }
 
+// Google sin polyline-algoritme (samme som Google Maps/Strava bruker til
+// akkurat dette): koder differansen mellom påfølgende punkter i stedet for
+// fulle koordinater, og pakker det inn i noen få ASCII-tegn per punkt i
+// stedet for et JSON-objekt med hakeparanteser/komma/punktum + base64-
+// overhead. Kutter en delt lenke til brøkdelen av lengden på lange ruter.
+function encodePolylineValue(value) {
+  let v = value < 0 ? ~(value << 1) : (value << 1);
+  let result = '';
+  while (v >= 0x20) {
+    result += String.fromCharCode((0x20 | (v & 0x1f)) + 63);
+    v >>= 5;
+  }
+  result += String.fromCharCode(v + 63);
+  return result;
+}
+
+function encodePolyline(points) {
+  let result = '';
+  let prevLat = 0, prevLng = 0;
+  for (const [lat, lng] of points) {
+    const lat5 = Math.round(lat * 1e5);
+    const lng5 = Math.round(lng * 1e5);
+    result += encodePolylineValue(lat5 - prevLat);
+    result += encodePolylineValue(lng5 - prevLng);
+    prevLat = lat5;
+    prevLng = lng5;
+  }
+  return result;
+}
+
+function decodePolyline(str) {
+  const points = [];
+  let index = 0, lat = 0, lng = 0;
+
+  function decodeValue() {
+    let result = 0, shift = 0, b;
+    do {
+      b = str.charCodeAt(index++) - 63;
+      result |= (b & 0x1f) << shift;
+      shift += 5;
+    } while (b >= 0x20);
+    return (result & 1) ? ~(result >> 1) : (result >> 1);
+  }
+
+  while (index < str.length) {
+    lat += decodeValue();
+    lng += decodeValue();
+    points.push([lat / 1e5, lng / 1e5]);
+  }
+  return points;
+}
+
 // Lenken bærer kun punktene og speil-valget — vekt og fart er personlige
 // innstillinger som mottakeren allerede har lagret lokalt hos seg selv.
 function buildShareUrl() {
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
   const points = routePoints.map(p => [Math.round(p.lat * 1e5) / 1e5, Math.round(p.lng * 1e5) / 1e5]);
-  const encoded = encodeURIComponent(btoa(JSON.stringify({ p: points, m: mirror })));
+  const encoded = encodeURIComponent(encodePolyline(points));
   const url = new URL(location.href);
-  url.search = `r=${encoded}`;
+  url.search = `r=${encoded}${mirror ? '&m=1' : ''}`;
   return url.toString();
 }
 
@@ -73,21 +125,22 @@ async function shareRoute() {
 // true hvis en rute ble lastet, slik at kalleren kan la være å geolokalisere
 // brukeren i stedet.
 function loadSharedRouteFromUrl() {
-  const encoded = new URLSearchParams(location.search).get('r');
+  const params = new URLSearchParams(location.search);
+  const encoded = params.get('r');
   if (!encoded) return false;
 
-  let data;
+  let points;
   try {
-    data = JSON.parse(atob(decodeURIComponent(encoded)));
+    points = decodePolyline(encoded);
   } catch (err) {
     return false;
   }
-  if (!Array.isArray(data.p) || data.p.length < 1) return false;
+  if (points.length < 1) return false;
 
-  routePoints = data.p.map(([lat, lng]) => ({ lat, lng }));
+  routePoints = points.map(([lat, lng]) => ({ lat, lng }));
   routeElevations = routePoints.map(() => undefined);
   undoStack = [];
-  if (data.m) document.getElementById('loype-mirror-checkbox').checked = true;
+  if (params.get('m') === '1') document.getElementById('loype-mirror-checkbox').checked = true;
 
   redrawRoutePolyline();
   redrawRouteMarkers();

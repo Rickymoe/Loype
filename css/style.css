@@ -1,5 +1,9 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* Fjerner nettleserens 300ms dobbelttrykk-forsinkelse på alle knapper —
+   uten denne venter hvert trykk på mobil på å se om et nytt trykk kommer. */
+button { touch-action: manipulation; }
+
 :root {
   --loype-accent: #2e7d32;
 
@@ -61,6 +65,11 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   flex-direction: column;
   gap: 8px;
   width: 260px;
+  /* Sikring for svært smale/korte skjermer — panelet skal aldri kunne
+     overflowe viewporten uten å bli scrollbart. */
+  max-width: calc(100vw - 32px);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 
 .panel-header {
@@ -77,8 +86,15 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   line-height: 1;
   color: var(--color-label);
   cursor: pointer;
-  padding: 2px 4px;
   flex-shrink: 0;
+  /* Usynlig, større trykkflate rundt det synlige ikonet — samme visuelle
+     størrelse, men når anbefalt 44px touch-mål på mobil. */
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
 }
 
 .panel-collapse-btn:hover { color: var(--color-text); }
@@ -229,13 +245,14 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .loype-pace-reset-btn {
   flex-shrink: 0;
-  width: 34px;
+  width: 40px;
   background: white;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
   font-size: var(--fs-base);
   color: var(--color-text-soft);
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .loype-pace-reset-btn:hover {
@@ -508,14 +525,20 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 #loype-detail-close {
   position: absolute;
-  top: 10px;
-  right: 14px;
+  top: 4px;
+  right: 4px;
   background: none;
   border: none;
   font-size: var(--fs-3xl);
   line-height: 1;
   color: var(--color-label);
   cursor: pointer;
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: manipulation;
 }
 
 #loype-detail-close:hover { color: var(--color-text); }

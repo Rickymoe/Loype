@@ -47,6 +47,16 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .field-group { margin: 10px 0; }
 
+.field-row {
+  display: flex;
+  gap: 10px;
+}
+
+.field-row .field-group {
+  flex: 1;
+  min-width: 0;
+}
+
 .field-group label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; }
 
 .field-group input {

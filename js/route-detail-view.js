@@ -453,9 +453,9 @@ function buildDetailModalSkeleton() {
           </div>
         </div>
       </div>
-      <div id="loype-detail-weather" class="loype-detail-weather hidden"></div>
-      <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden"></div>
-      <div id="loype-detail-hydration" class="loype-detail-hydration hidden"></div>
+      <div id="loype-detail-weather" class="loype-detail-weather hidden" aria-live="polite"></div>
+      <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden" aria-live="polite"></div>
+      <div id="loype-detail-hydration" class="loype-detail-hydration hidden" aria-live="polite"></div>
       <div class="loype-detail-ai-row">
         <button id="loype-detail-ask-ai-btn" class="loype-btn">🤖 Spør ChatGPT</button>
         <button id="loype-detail-copy-ai-btn" class="loype-btn loype-copy-btn" aria-label="Kopier spørring" title="Kopier for å lime inn i f.eks. Claude.ai">

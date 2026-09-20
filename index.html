@@ -39,7 +39,7 @@
             <input type="number" id="loype-height-input" min="100" max="250" step="1" placeholder="180" />
           </div>
         </div>
-        <div id="loype-bmi-value" class="hidden"></div>
+        <div id="loype-bmi-value" class="hidden" aria-live="polite"></div>
       </div>
       <div class="field-group">
         <label for="loype-pace-input">Snittid flatterreng (min/km)</label>
@@ -57,8 +57,8 @@
         <button id="loype-undo-btn" class="loype-btn" disabled>Angre siste punkt</button>
         <button id="loype-clear-btn" class="loype-btn" disabled>Tøm rute</button>
       </div>
-      <div id="loype-error-msg" class="hidden"></div>
-      <div id="loype-result" class="hidden">
+      <div id="loype-error-msg" class="hidden" aria-live="assertive"></div>
+      <div id="loype-result" class="hidden" aria-live="polite">
         <div id="loype-distance-value"></div>
         <div id="loype-time-value" class="hidden"></div>
         <div id="loype-energy-value" class="hidden"></div>
@@ -76,7 +76,7 @@
           <button id="loype-share-btn" class="loype-btn" disabled>Del rute</button>
           <button id="loype-gpx-btn" class="loype-btn" disabled>Last ned GPX</button>
         </div>
-        <div id="loype-share-status" class="hidden"></div>
+        <div id="loype-share-status" class="hidden" aria-live="polite"></div>
       </div>
     </div>
   </div>

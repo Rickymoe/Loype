@@ -286,7 +286,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 #loype-result { margin-top: 10px; }
 
 #loype-distance-value {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 600;
   color: #1a1a2e;
   margin-bottom: 8px;

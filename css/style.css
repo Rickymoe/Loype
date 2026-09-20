@@ -290,12 +290,25 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 #loype-detail-close:hover { color: #333; }
 
+.loype-detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  padding-right: 24px;
+}
+
 #loype-detail-summary {
   font-size: 14px;
   font-weight: 600;
   color: #1a1a2e;
-  margin-bottom: 12px;
-  padding-right: 24px;
+}
+
+.loype-detail-pace-mode {
+  flex-shrink: 0;
+  width: 130px;
+  margin-bottom: 0;
 }
 
 .loype-detail-tooltip {

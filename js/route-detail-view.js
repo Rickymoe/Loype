@@ -134,15 +134,55 @@ function hideDetailTooltip() {
 }
 
 let detailModal = null;
+let currentProfile = null;
+let cachedPlaceNames = null;
 
 function openRouteDetailView() {
   const profile = buildDistanceProfile();
   if (profile.length < 2) return;
+  currentProfile = profile;
+  cachedPlaceNames = null;
 
   buildDetailModalSkeleton();
+  initDetailPaceButtons();
   renderDetailSummary(profile);
   renderDetailChart(profile);
   loadPlaceLabels(profile);
+}
+
+// Lar deg bytte Løp/Gå mens detaljvisningen er åpen, uten å måtte lukke den
+// for å bruke bryteren i hovedpanelet. Stedsnavn er ofte allerede hentet, så
+// vi gjenbruker dem i stedet for å spørre Kartverket på nytt ved hvert bytte.
+function initDetailPaceButtons() {
+  const runBtn = document.getElementById('loype-detail-pace-run-btn');
+  const walkBtn = document.getElementById('loype-detail-pace-walk-btn');
+  syncDetailPaceButtons();
+  runBtn.addEventListener('click', () => {
+    setPaceMode('run');
+    syncDetailPaceButtons();
+    refreshDetailView();
+  });
+  walkBtn.addEventListener('click', () => {
+    setPaceMode('walk');
+    syncDetailPaceButtons();
+    refreshDetailView();
+  });
+}
+
+function syncDetailPaceButtons() {
+  document.getElementById('loype-detail-pace-run-btn').classList.toggle('active', paceMode === 'run');
+  document.getElementById('loype-detail-pace-walk-btn').classList.toggle('active', paceMode === 'walk');
+}
+
+function refreshDetailView() {
+  if (!currentProfile) return;
+  renderDetailSummary(currentProfile);
+  renderDetailChart(currentProfile);
+  if (cachedPlaceNames) {
+    applyPlaceLabels(currentProfile, cachedPlaceNames);
+  } else {
+    loadPlaceLabels(currentProfile);
+  }
 }
 
 function closeRouteDetailView() {
@@ -150,6 +190,8 @@ function closeRouteDetailView() {
     detailModal.remove();
     detailModal = null;
   }
+  currentProfile = null;
+  cachedPlaceNames = null;
 }
 
 function buildDetailModalSkeleton() {
@@ -160,7 +202,13 @@ function buildDetailModalSkeleton() {
     <div id="loype-detail-backdrop"></div>
     <div id="loype-detail-panel">
       <button id="loype-detail-close" aria-label="Lukk">&times;</button>
-      <div id="loype-detail-summary"></div>
+      <div class="loype-detail-header">
+        <div id="loype-detail-summary"></div>
+        <div class="loype-pace-mode loype-detail-pace-mode">
+          <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
+          <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
+        </div>
+      </div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
     <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>
@@ -525,24 +573,33 @@ function addDetailLabel(profile, point, name) {
   svg.appendChild(label);
 }
 
+function applyPlaceLabels(profile, names) {
+  addDetailLabel(profile, profile[0], names.startName || 'Start');
+  addDetailLabel(profile, profile[profile.length - 1], names.endName || 'Slutt');
+  if (names.peakIndex !== 0 && names.peakIndex !== profile.length - 1) {
+    addDetailLabel(profile, profile[names.peakIndex], names.peakName || 'Høyeste punkt');
+  }
+}
+
 async function loadPlaceLabels(profile) {
   const start = profile[0];
   const end = profile[profile.length - 1];
-  const peak = profile.reduce((a, b) => (b.elevation > a.elevation ? b : a));
+  let peakIndex = 0;
+  for (let i = 1; i < profile.length; i++) {
+    if (profile[i].elevation > profile[peakIndex].elevation) peakIndex = i;
+  }
+  const peak = profile[peakIndex];
 
   const [startName, endName, peakName] = await Promise.all([
     fetchPlaceName(start.lat, start.lng),
     fetchPlaceName(end.lat, end.lng),
-    peak !== start && peak !== end ? fetchPlaceName(peak.lat, peak.lng) : Promise.resolve(null),
+    peakIndex !== 0 && peakIndex !== profile.length - 1 ? fetchPlaceName(peak.lat, peak.lng) : Promise.resolve(null),
   ]);
 
   if (!document.getElementById('loype-detail-chart')) return; // modal lukket i mellomtiden
 
-  addDetailLabel(profile, start, startName || 'Start');
-  addDetailLabel(profile, end, endName || 'Slutt');
-  if (peak !== start && peak !== end) {
-    addDetailLabel(profile, peak, peakName || 'Høyeste punkt');
-  }
+  cachedPlaceNames = { startName, endName, peakName, peakIndex };
+  applyPlaceLabels(profile, cachedPlaceNames);
 }
 
 function initRouteDetailView() {

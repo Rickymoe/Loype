@@ -264,8 +264,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   border-radius: 6px;
 }
 
-.loype-favorite-save-row .loype-btn {
-  flex: 0 0 auto;
+.loype-favorite-save-row .loype-pace-reset-btn {
+  flex-shrink: 0;
 }
 
 .loype-icon-row {

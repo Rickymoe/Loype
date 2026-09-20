@@ -85,21 +85,13 @@ function loadFavoriteRoute(fav) {
     });
 }
 
-function startSaveFavorite() {
-  document.getElementById('loype-favorite-save-row').classList.remove('hidden');
-  const input = document.getElementById('loype-favorite-name-input');
-  input.value = '';
-  input.focus();
-}
-
-function cancelSaveFavorite() {
-  document.getElementById('loype-favorite-save-row').classList.add('hidden');
-}
-
 function confirmSaveFavorite() {
   const input = document.getElementById('loype-favorite-name-input');
   const name = input.value.trim();
-  if (!name) return;
+  if (!name) {
+    input.focus();
+    return;
+  }
 
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
   const points = routePoints.map(p => [Math.round(p.lat * 1e5) / 1e5, Math.round(p.lng * 1e5) / 1e5]);
@@ -108,17 +100,22 @@ function confirmSaveFavorite() {
   favorites.push({ name, points, mirror, savedAt: new Date().toISOString() });
   saveFavoritesList(favorites);
 
-  cancelSaveFavorite();
+  input.value = '';
+  flashSavedFeedback();
   renderFavoritesList();
 }
 
+function flashSavedFeedback() {
+  const btn = document.getElementById('loype-favorite-save-btn');
+  const original = btn.textContent;
+  btn.textContent = '✓';
+  setTimeout(() => { btn.textContent = original; }, 1500);
+}
+
 function initFavorites() {
-  document.getElementById('loype-save-favorite-btn').addEventListener('click', startSaveFavorite);
-  document.getElementById('loype-favorite-cancel-btn').addEventListener('click', cancelSaveFavorite);
-  document.getElementById('loype-favorite-confirm-btn').addEventListener('click', confirmSaveFavorite);
+  document.getElementById('loype-favorite-save-btn').addEventListener('click', confirmSaveFavorite);
   document.getElementById('loype-favorite-name-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') confirmSaveFavorite();
-    if (e.key === 'Escape') cancelSaveFavorite();
   });
   renderFavoritesList();
 }

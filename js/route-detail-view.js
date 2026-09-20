@@ -218,15 +218,27 @@ function initDetailWhenButton() {
   // grensene, men vi klemmer den likevel her som en ekstra sikring på tvers
   // av nettlesere.
   dateInput.addEventListener('change', () => {
-    let value = dateInput.value;
+    const rawValue = dateInput.value;
+    const outOfRange = rawValue < dateInput.min || rawValue > dateInput.max;
+
+    let value = rawValue;
     if (value < dateInput.min) value = dateInput.min;
     if (value > dateInput.max) value = dateInput.max;
     if (value !== dateInput.value) dateInput.value = value;
 
     selectedForecastDate = value;
     btn.textContent = value === todayIso ? 'Nå' : formatShortDate(value);
-    refreshDetailWeather();
-    refreshRainWindowIfApplicable();
+
+    // Klemt til grensen er ikke det samme som "gyldig for grensen" — hvis
+    // brukeren egentlig prøvde å velge noe utenfor vinduet, vil vi ikke vise
+    // vær som ser ut til å gjelde den datoen de faktisk pekte på.
+    if (outOfRange) {
+      document.getElementById('loype-detail-weather').classList.add('hidden');
+      document.getElementById('loype-detail-rain-window').classList.add('hidden');
+    } else {
+      refreshDetailWeather();
+      refreshRainWindowIfApplicable();
+    }
   });
 }
 

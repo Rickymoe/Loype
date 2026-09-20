@@ -206,8 +206,6 @@ function computeRouteEnergyKcal() {
   return kcal;
 }
 
-// ACSM sin anbefaling (samme kilde som energiformelen): erstatt væske
-// tilsvarende 150 % av svettetapet under en økt.
 function renderHydration(weather) {
   const el = document.getElementById('loype-detail-hydration');
   if (!el) return;
@@ -219,7 +217,6 @@ function renderHydration(weather) {
   }
 
   const sweatL = estimateFluidLossLiters(energyKcal, weather.temp, weather.humidity ?? 50);
-  const intakeL = sweatL * 1.5;
-  el.textContent = `💦 Estimert væsketap: ${sweatL.toFixed(1)} L · 🥤 Anbefalt inntak: ${intakeL.toFixed(1)} L`;
+  el.textContent = `💦 Estimert væsketap: ${sweatL.toFixed(1)} L`;
   el.classList.remove('hidden');
 }

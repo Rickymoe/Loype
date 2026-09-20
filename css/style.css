@@ -437,17 +437,23 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   word-break: break-all;
 }
 
+/* NB: ingen display-egenskap her — det ville slått .hidden pga.
+   ID-selektorens høyere spesifisitet, og gjort boksen alltid synlig som en
+   tom stripe. Layouten ligger i stedet i .loype-error-content under. */
 #loype-error-msg {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 8px;
   margin-top: 8px;
   font-size: var(--fs-xs);
   color: var(--color-error);
   background: var(--color-error-bg);
   padding: 8px;
   border-radius: var(--radius-sm);
+}
+
+.loype-error-content {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
 }
 
 .loype-error-close {

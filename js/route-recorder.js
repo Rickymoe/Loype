@@ -158,6 +158,9 @@ function showLoypeError(msg) {
   const el = document.getElementById('loype-error-msg');
   el.innerHTML = '';
 
+  const content = document.createElement('div');
+  content.className = 'loype-error-content';
+
   const text = document.createElement('span');
   text.textContent = msg;
 
@@ -168,8 +171,9 @@ function showLoypeError(msg) {
   closeBtn.textContent = '×';
   closeBtn.addEventListener('click', hideLoypeError);
 
-  el.appendChild(text);
-  el.appendChild(closeBtn);
+  content.appendChild(text);
+  content.appendChild(closeBtn);
+  el.appendChild(content);
   el.classList.remove('hidden');
 }
 

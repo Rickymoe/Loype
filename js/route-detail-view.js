@@ -547,18 +547,6 @@ function renderDetailChart(profile) {
     svg.appendChild(outline);
   }
 
-  // --- Prikk for hvert punkt du faktisk klikket, langs ridgen ---
-  frontPts.forEach(p => {
-    const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    dot.setAttribute('cx', String(p.x));
-    dot.setAttribute('cy', String(p.y));
-    dot.setAttribute('r', '4');
-    dot.setAttribute('fill', LOYPE_LINE_COLOR);
-    dot.setAttribute('stroke', '#fff');
-    dot.setAttribute('stroke-width', '2');
-    svg.appendChild(dot);
-  });
-
   // --- Svevende linje over terrenget: følger høydeprofilen, løftet opp et
   // fast antall piksler. Hover på et hvilket som helst punkt viser tid og
   // energiforbruk dit; ved start, topp og slutt trekkes tiden i tillegg

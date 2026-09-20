@@ -59,6 +59,28 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .hidden { display: none; }
 
+.loype-pace-mode {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.loype-pace-mode-btn {
+  flex: 1;
+  padding: 5px;
+  background: white;
+  color: var(--loype-accent);
+  border: 1px solid var(--loype-accent);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.loype-pace-mode-btn.active {
+  background: var(--loype-accent);
+  color: white;
+}
+
 #loype-panel {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);

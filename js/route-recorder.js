@@ -419,14 +419,45 @@ async function fetchAndStoreElevation(pt, index) {
   }
 }
 
+// To hastigheter (løp/gå) huskes hver for seg per bruker, siden farten
+// naturlig er svært forskjellig mellom aktivitetene.
+const PACE_DEFAULTS = { run: '5:30', walk: '12:00' };
+let paceMode = 'run';
+
+function setPaceMode(mode) {
+  paceMode = mode;
+  const profile = loadProfile();
+  document.getElementById('loype-pace-input').value = profile[`pace_${mode}`] || PACE_DEFAULTS[mode];
+  document.getElementById('loype-pace-run-btn').classList.toggle('active', mode === 'run');
+  document.getElementById('loype-pace-walk-btn').classList.toggle('active', mode === 'walk');
+  saveProfile({ ...profile, paceMode: mode });
+  updateDistanceAndChart();
+}
+
+function persistPaceValue() {
+  const profile = loadProfile();
+  saveProfile({ ...profile, [`pace_${paceMode}`]: document.getElementById('loype-pace-input').value, paceMode });
+}
+
 function initLoypePanel() {
   document.getElementById('loype-geolocate-btn').addEventListener('click', useMyLocationForRoute);
   document.getElementById('loype-undo-btn').addEventListener('click', undoLastRoutePoint);
   document.getElementById('loype-clear-btn').addEventListener('click', clearRoute);
   document.getElementById('loype-mirror-checkbox').addEventListener('change', updateDistanceAndChart);
-  document.getElementById('loype-pace-input').addEventListener('input', updateDistanceAndChart);
+  document.getElementById('loype-pace-input').addEventListener('input', () => {
+    persistPaceValue();
+    updateDistanceAndChart();
+  });
+  document.getElementById('loype-pace-run-btn').addEventListener('click', () => setPaceMode('run'));
+  document.getElementById('loype-pace-walk-btn').addEventListener('click', () => setPaceMode('walk'));
   initPanelCollapse('loype-panel', 'loype-panel-collapse-btn');
   updateLoypeControls();
+
+  const profile = loadProfile();
+  paceMode = profile.paceMode || 'run';
+  document.getElementById('loype-pace-input').value = profile[`pace_${paceMode}`] || PACE_DEFAULTS[paceMode];
+  document.getElementById('loype-pace-run-btn').classList.toggle('active', paceMode === 'run');
+  document.getElementById('loype-pace-walk-btn').classList.toggle('active', paceMode === 'walk');
 }
 
 document.addEventListener('DOMContentLoaded', initLoypePanel);

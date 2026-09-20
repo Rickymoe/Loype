@@ -45,15 +45,6 @@ function buildDistanceProfile() {
   return profile;
 }
 
-// Dybde-forskyvning for den ekstruderte 3D-følelsen: toppflaten (veien) og
-// endeflaten flyttes dette mange enheter opp/høyre relativt til frontflaten.
-const DEPTH_DX = 50;
-const DEPTH_DY = -22;
-
-function depthOffset(pt) {
-  return { x: pt.x + DEPTH_DX, y: pt.y + DEPTH_DY };
-}
-
 const GRADE_BUCKETS = [
   { max: 0.03, light: '#dcedc8', base: '#8bc34a', dark: '#5a8f2e' },
   { max: 0.06, light: '#fff3cd', base: '#ffc107', dark: '#c79400' },
@@ -476,9 +467,8 @@ function renderDetailChart(profile) {
   while (svg.firstChild) svg.removeChild(svg.firstChild);
 
   const width = 1100, height = 380;
-  const plotLeft = 30, plotRight = width - 150, plotTop = 80, plotBottom = height - 90;
-  const baseHeight = 22;
-  const rulerX = plotRight + DEPTH_DX + 25;
+  const plotLeft = 30, plotRight = width - 150, plotTop = 80, plotBottom = height - 40;
+  const rulerX = plotRight + 25;
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const weightKg = parseFloat(loadProfile().weight);
 
@@ -516,20 +506,17 @@ function renderDetailChart(profile) {
     return el;
   };
 
-  // --- Svart 3D-sokkel bakken står på ---
-  const baseFTL = { x: plotLeft, y: plotBottom };
-  const baseFTR = { x: plotRight, y: plotBottom };
-  const baseFBL = { x: plotLeft, y: plotBottom + baseHeight };
-  const baseFBR = { x: plotRight, y: plotBottom + baseHeight };
-  const baseBTL = depthOffset(baseFTL);
-  const baseBTR = depthOffset(baseFTR);
-  const baseBBR = depthOffset(baseFBR);
+  // --- Grunnlinje (bakken) ---
+  const groundLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  groundLine.setAttribute('x1', String(plotLeft));
+  groundLine.setAttribute('y1', String(plotBottom));
+  groundLine.setAttribute('x2', String(plotRight));
+  groundLine.setAttribute('y2', String(plotBottom));
+  groundLine.setAttribute('stroke', '#ccc');
+  groundLine.setAttribute('stroke-width', '1');
+  svg.appendChild(groundLine);
 
-  poly([baseFTL, baseFTR, baseBTR, baseBTL], '#3a3a3a'); // toppflate
-  poly([baseFTL, baseFTR, baseFBR, baseFBL], '#1f1f1f'); // frontflate
-  poly([baseFTR, baseFBR, baseBBR, baseBTR], '#111');    // endeflate
-
-  // --- Terreng: frontflate per delstrekning ---
+  // --- Terreng: fylt flate per delstrekning, farget etter helning ---
   const frontPts = profile.map(p => ({ x: xFor(p.distKm), y: yFor(p.elevation) }));
   for (let i = 1; i < profile.length; i++) {
     const a = profile[i - 1], b = profile[i];
@@ -542,26 +529,23 @@ function renderDetailChart(profile) {
     );
   }
 
-  // --- Terreng: toppflate (veien du løper på) per delstrekning ---
-  const backPts = frontPts.map(depthOffset);
+  // --- Terrengkontur — en tydelig strek langs selve ridgen, farget etter
+  // samme helning som flaten under (i stedet for en nøytral svart strek). ---
   for (let i = 1; i < profile.length; i++) {
     const a = profile[i - 1], b = profile[i];
     const segKm = b.distKm - a.distKm;
     const grade = segKm > 0 ? Math.max(0, (b.elevation - a.elevation) / (segKm * 1000)) : 0;
     const bucket = GRADE_BUCKETS[gradeBucketIndex(grade)];
-    poly([frontPts[i - 1], frontPts[i], backPts[i], backPts[i - 1]], bucket.light);
+    const outline = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    outline.setAttribute('x1', String(frontPts[i - 1].x));
+    outline.setAttribute('y1', String(frontPts[i - 1].y));
+    outline.setAttribute('x2', String(frontPts[i].x));
+    outline.setAttribute('y2', String(frontPts[i].y));
+    outline.setAttribute('stroke', bucket.dark);
+    outline.setAttribute('stroke-width', '2');
+    outline.setAttribute('stroke-linecap', 'round');
+    svg.appendChild(outline);
   }
-
-  // --- Terreng: endeflate helt til høyre, lukker den ekstruderte formen ---
-  const lastFront = frontPts[frontPts.length - 1];
-  const lastBase = { x: lastFront.x, y: plotBottom };
-  const lastBackFront = depthOffset(lastFront);
-  const lastBackBase = depthOffset(lastBase);
-  const lastGrade = profile.length > 1
-    ? Math.max(0, (profile[profile.length - 1].elevation - profile[profile.length - 2].elevation) /
-        Math.max((profile[profile.length - 1].distKm - profile[profile.length - 2].distKm) * 1000, 0.001))
-    : 0;
-  poly([lastBase, lastFront, lastBackFront, lastBackBase], GRADE_BUCKETS[gradeBucketIndex(lastGrade)].dark);
 
   // --- Prikk for hvert punkt du faktisk klikket, langs ridgen ---
   frontPts.forEach(p => {
@@ -714,16 +698,24 @@ function renderDetailChart(profile) {
     svg.appendChild(label);
   }
 
-  // --- Distansemerker på den svarte sokkelen ---
+  // --- Distansemerker under grunnlinja ---
   const xStepKm = totalKm > 5 ? 1 : (totalKm > 1 ? 0.5 : 0.1);
   for (let d = 0; d <= totalKm + 0.001; d += xStepKm) {
     const x = xFor(d);
+    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    tick.setAttribute('x1', String(x));
+    tick.setAttribute('y1', String(plotBottom));
+    tick.setAttribute('x2', String(x));
+    tick.setAttribute('y2', String(plotBottom + 6));
+    tick.setAttribute('stroke', '#ccc');
+    svg.appendChild(tick);
+
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', String(x));
-    label.setAttribute('y', String(plotBottom + baseHeight - 6));
+    label.setAttribute('y', String(plotBottom + 20));
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('font-size', '11');
-    label.setAttribute('fill', '#fff');
+    label.setAttribute('fill', '#5f6368');
     label.textContent = `${d.toFixed(d < 1 ? 1 : 0)} km`;
     svg.appendChild(label);
   }

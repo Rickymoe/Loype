@@ -211,6 +211,7 @@ function initDetailWhenButton() {
   dateInput.addEventListener('change', () => {
     selectedForecastDate = dateInput.value;
     btn.textContent = dateInput.value === todayIso ? 'Nå' : formatShortDate(dateInput.value);
+    dateInput.classList.add('hidden');
   });
 }
 

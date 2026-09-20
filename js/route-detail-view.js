@@ -279,6 +279,26 @@ function renderDetailChart(profile) {
     line.setAttribute('stroke-linecap', 'round');
     svg.appendChild(line);
 
+    // Usynlige, brede "treff-segmenter" langs linja — den synlige streken er
+    // for tynn til å treffe pålitelig med musepekeren, så hover fanges opp av
+    // disse i stedet. Viser tid/energi ved enden av segmentet man hovrer på.
+    for (let i = 1; i < linePts.length; i++) {
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      hit.setAttribute('x1', String(linePts[i - 1].x));
+      hit.setAttribute('y1', String(linePts[i - 1].y));
+      hit.setAttribute('x2', String(linePts[i].x));
+      hit.setAttribute('y2', String(linePts[i].y));
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', '16');
+
+      const hitTitle = document.createElementNS('http://www.w3.org/2000/svg', 'title');
+      const hitEnergyPart = cumKcal ? ` · ${Math.round(cumKcal[i] * 4.184)} kJ / ${Math.round(cumKcal[i])} kcal` : '';
+      hitTitle.textContent = `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${hitEnergyPart}`;
+      hit.appendChild(hitTitle);
+
+      svg.appendChild(hit);
+    }
+
     linePts.forEach((p, i) => {
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('cx', String(p.x));

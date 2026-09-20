@@ -33,7 +33,7 @@ function updateBmiDisplay() {
 
   const heightM = heightCm / 100;
   const bmi = weight / (heightM * heightM);
-  bmiEl.textContent = `BMI: ${bmi.toFixed(1)}`;
+  bmiEl.textContent = `BMI: ${formatNo(bmi, 1)}`;
   bmiEl.classList.remove('hidden');
 }
 

@@ -273,7 +273,7 @@ function renderElevationChart(elevations, km) {
   const range = Math.max(max - min, 1);
 
   const title = document.createElementNS('http://www.w3.org/2000/svg', 'title');
-  title.textContent = `Høydeprofil: ${Math.round(min)}–${Math.round(max)} m`;
+  title.textContent = `Høydeprofil: ${formatNo(min)}–${formatNo(max)} m`;
   svg.appendChild(title);
 
   const plotLeft = axisLeft;
@@ -311,7 +311,7 @@ function renderElevationChart(elevations, km) {
   }
 
   addXLabel(plotLeft, '0 km', 'start');
-  addXLabel(plotRight, `${km.toFixed(2)} km`, 'end');
+  addXLabel(plotRight, `${formatNo(km, 2)} km`, 'end');
 
   function addTick(y, value) {
     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -329,7 +329,7 @@ function renderElevationChart(elevations, km) {
     label.setAttribute('text-anchor', 'end');
     label.setAttribute('font-size', '9');
     label.setAttribute('fill', '#5f6368');
-    label.textContent = `${Math.round(value)} m`;
+    label.textContent = `${formatNo(value)} m`;
     svg.appendChild(label);
   }
 
@@ -367,7 +367,7 @@ function updateDistanceAndChart() {
   let km = turf.length(line, { units: 'kilometers' });
   if (mirror) km *= 2;
 
-  document.getElementById('loype-distance-value').textContent = `${km.toFixed(2)} km`;
+  document.getElementById('loype-distance-value').textContent = `${formatNo(km, 2)} km`;
   document.getElementById('loype-result').classList.remove('hidden');
 
   let known = routeElevations.filter(e => e !== undefined);
@@ -391,6 +391,14 @@ function parsePaceToSecondsPerKm(input) {
     return asNumber * 60;
   }
   return null;
+}
+
+// Norsk tallformat (komma som desimaltegn, mellomrom som tusenskille) i
+// stedet for toFixed()'s alltid-engelske punktum. Kun for tall som faktisk
+// vises til brukeren — API-kall, SVG-koordinater og GPX forblir upåvirket,
+// siden de må ha standard desimalpunktum uansett.
+function formatNo(value, decimals = 0) {
+  return value.toLocaleString('nb-NO', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
 }
 
 function formatDuration(totalSeconds) {
@@ -591,7 +599,7 @@ function updateEstimatedEnergy() {
   }
   const kj = kcal * 4.184;
 
-  energyEl.textContent = `Energi: ${Math.round(kj)} kJ / ${Math.round(kcal)} kcal`;
+  energyEl.textContent = `Energi: ${formatNo(kj)} kJ / ${formatNo(kcal)} kcal`;
   energyEl.classList.remove('hidden');
 }
 

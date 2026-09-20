@@ -457,11 +457,11 @@ function renderDetailSummary(profile) {
   if (paceSecPerKm && weightKg) {
     let kcal = routeSegmentKcal(paceSecPerKm, weightKg, false);
     if (mirror) kcal += routeSegmentKcal(paceSecPerKm, weightKg, true);
-    energyText = ` · Energi: ${Math.round(kcal * 4.184)} kJ / ${Math.round(kcal)} kcal`;
+    energyText = ` · Energi: ${formatNo(kcal * 4.184)} kJ / ${formatNo(kcal)} kcal`;
   }
 
   document.getElementById('loype-detail-summary').textContent =
-    `${totalKm.toFixed(2)} km · ${Math.round(gain)} m stigning${timeText}${energyText}`;
+    `${formatNo(totalKm, 2)} km · ${formatNo(gain)} m stigning${timeText}${energyText}`;
 }
 
 function renderDetailChart(profile) {
@@ -610,10 +610,10 @@ function renderDetailChart(profile) {
 
       const distKm = profile[i - 1].distKm + frac * (profile[i].distKm - profile[i - 1].distKm);
       const seconds = cumSeconds[i - 1] + frac * (cumSeconds[i] - cumSeconds[i - 1]);
-      let text = `${distKm.toFixed(2)} km · ${formatDuration(seconds)}`;
+      let text = `${formatNo(distKm, 2)} km · ${formatDuration(seconds)}`;
       if (cumKcal) {
         const kcal = cumKcal[i - 1] + frac * (cumKcal[i] - cumKcal[i - 1]);
-        text += ` · ${Math.round(kcal * 4.184)} kJ / ${Math.round(kcal)} kcal`;
+        text += ` · ${formatNo(kcal * 4.184)} kJ / ${formatNo(kcal)} kcal`;
       }
       showDetailTooltip(text, e);
 
@@ -684,7 +684,7 @@ function renderDetailChart(profile) {
     label.setAttribute('text-anchor', 'start');
     label.setAttribute('font-size', '11');
     label.setAttribute('fill', '#5f6368');
-    label.textContent = `${Math.round(value)} m`;
+    label.textContent = `${formatNo(value)} m`;
     svg.appendChild(label);
   }
 
@@ -706,7 +706,7 @@ function renderDetailChart(profile) {
     label.setAttribute('text-anchor', 'middle');
     label.setAttribute('font-size', '11');
     label.setAttribute('fill', '#5f6368');
-    label.textContent = `${d.toFixed(d < 1 ? 1 : 0)} km`;
+    label.textContent = `${formatNo(d, d < 1 ? 1 : 0)} km`;
     svg.appendChild(label);
   }
 
@@ -770,7 +770,7 @@ function addDetailLabel(profile, point, name) {
   label.setAttribute('stroke-width', '3');
   label.setAttribute('paint-order', 'stroke');
   label.setAttribute('transform', `rotate(-90 ${labelX} ${labelY})`);
-  label.textContent = `${name} · ${point.distKm.toFixed(1)} km · ${Math.round(point.elevation)} m`;
+  label.textContent = `${name} · ${formatNo(point.distKm, 1)} km · ${formatNo(point.elevation)} m`;
   svg.appendChild(label);
 }
 

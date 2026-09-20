@@ -63,8 +63,8 @@ async function fetchWeatherForPoint(lat, lng, isoDate) {
 
 function buildWeatherLineHtml(weather) {
   const parts = [`${weatherSymbolEmoji(weather.symbolCode)} ${weather.temp != null ? Math.round(weather.temp) + '°C' : '–'}`];
-  if (weather.windSpeed != null) parts.push(`💨 ${weather.windSpeed.toFixed(1)} m/s ${weatherWindDir(weather.windDir ?? 0)}`);
-  if (weather.precipitation != null) parts.push(`🌧 ${weather.precipitation.toFixed(1)} mm`);
+  if (weather.windSpeed != null) parts.push(`💨 ${formatNo(weather.windSpeed, 1)} m/s ${weatherWindDir(weather.windDir ?? 0)}`);
+  if (weather.precipitation != null) parts.push(`🌧 ${formatNo(weather.precipitation, 1)} mm`);
   if (weather.humidity != null) parts.push(`💧 ${Math.round(weather.humidity)}%`);
   return parts.join(' · ');
 }
@@ -134,7 +134,7 @@ async function refreshDetailRainWindow(durationHours) {
 
     el.textContent = window.total < 0.1
       ? `🌂 Beste vindu: kl. ${formatClock(window.start)}–${formatClock(window.end)} (tørt)`
-      : `🌂 Beste vindu: kl. ${formatClock(window.start)}–${formatClock(window.end)} (~${window.total.toFixed(1)} mm)`;
+      : `🌂 Beste vindu: kl. ${formatClock(window.start)}–${formatClock(window.end)} (~${formatNo(window.total, 1)} mm)`;
     el.classList.remove('hidden');
   } catch (err) {
     el.classList.add('hidden');
@@ -216,6 +216,6 @@ function renderHydration(weather) {
   }
 
   const sweatL = estimateFluidLossLiters(energyKcal, weather.temp, weather.humidity ?? 50);
-  el.textContent = `💦 Estimert væsketap: ${sweatL.toFixed(1)} L`;
+  el.textContent = `💦 Estimert væsketap: ${formatNo(sweatL, 1)} L`;
   el.classList.remove('hidden');
 }

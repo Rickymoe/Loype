@@ -123,12 +123,6 @@ function hideDetailTooltip() {
   document.getElementById('loype-detail-tooltip').classList.add('hidden');
 }
 
-function attachHoverTooltip(el, text) {
-  el.addEventListener('mouseenter', e => showDetailTooltip(text, e));
-  el.addEventListener('mousemove', positionDetailTooltip);
-  el.addEventListener('mouseleave', hideDetailTooltip);
-}
-
 let detailModal = null;
 
 function openRouteDetailView() {
@@ -305,25 +299,9 @@ function renderDetailChart(profile) {
     line.setAttribute('stroke-linecap', 'round');
     svg.appendChild(line);
 
-    // Usynlige, brede "treff-segmenter" langs linja — den synlige streken er
-    // for tynn til å treffe pålitelig med musepekeren, så hover fanges opp av
-    // disse i stedet. Viser tid/energi ved enden av segmentet man hovrer på.
-    for (let i = 1; i < linePts.length; i++) {
-      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      hit.setAttribute('x1', String(linePts[i - 1].x));
-      hit.setAttribute('y1', String(linePts[i - 1].y));
-      hit.setAttribute('x2', String(linePts[i].x));
-      hit.setAttribute('y2', String(linePts[i].y));
-      hit.setAttribute('stroke', 'transparent');
-      hit.setAttribute('stroke-width', '16');
-
-      const hitEnergyPart = cumKcal ? ` · ${Math.round(cumKcal[i] * 4.184)} kJ / ${Math.round(cumKcal[i])} kcal` : '';
-      attachHoverTooltip(hit, `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${hitEnergyPart}`);
-
-      svg.appendChild(hit);
-    }
-
-    linePts.forEach((p, i) => {
+    // Rene visuelle prikker ved hvert punkt — ikke interaktive selv, siden
+    // treffsonen under (hitPath) dekker hele linja sammenhengende.
+    linePts.forEach(p => {
       const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('cx', String(p.x));
       dot.setAttribute('cy', String(p.y));
@@ -331,11 +309,58 @@ function renderDetailChart(profile) {
       dot.setAttribute('fill', '#fff');
       dot.setAttribute('stroke', LOYPE_LINE_COLOR);
       dot.setAttribute('stroke-width', '2');
-
-      const energyPart = cumKcal ? ` · ${Math.round(cumKcal[i] * 4.184)} kJ / ${Math.round(cumKcal[i])} kcal` : '';
-      attachHoverTooltip(dot, `${profile[i].distKm.toFixed(2)} km · ${formatDuration(cumSeconds[i])}${energyPart}`);
-
+      dot.setAttribute('pointer-events', 'none');
       svg.appendChild(dot);
+    });
+
+    // Prikk som følger musepekeren langs linja og viser akkurat tid/energi
+    // for punktet der pekeren faktisk treffer — interpolert mellom de to
+    // nærmeste rutepunktene, ikke bare verdien ved enden av segmentet.
+    const hoverIndicator = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    hoverIndicator.setAttribute('r', '5');
+    hoverIndicator.setAttribute('fill', LOYPE_LINE_COLOR);
+    hoverIndicator.setAttribute('stroke', '#fff');
+    hoverIndicator.setAttribute('stroke-width', '2');
+    hoverIndicator.setAttribute('display', 'none');
+    svg.appendChild(hoverIndicator);
+
+    const hitPath = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+    hitPath.setAttribute('points', linePts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' '));
+    hitPath.setAttribute('fill', 'none');
+    hitPath.setAttribute('stroke', 'transparent');
+    hitPath.setAttribute('stroke-width', '20');
+    svg.appendChild(hitPath);
+
+    hitPath.addEventListener('mousemove', e => {
+      const pt = svg.createSVGPoint();
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
+      const x = Math.min(Math.max(svgP.x, linePts[0].x), linePts[linePts.length - 1].x);
+
+      let i = 1;
+      while (i < linePts.length - 1 && linePts[i].x < x) i++;
+      const x0 = linePts[i - 1].x, x1 = linePts[i].x;
+      const frac = x1 > x0 ? (x - x0) / (x1 - x0) : 0;
+
+      const distKm = profile[i - 1].distKm + frac * (profile[i].distKm - profile[i - 1].distKm);
+      const seconds = cumSeconds[i - 1] + frac * (cumSeconds[i] - cumSeconds[i - 1]);
+      let text = `${distKm.toFixed(2)} km · ${formatDuration(seconds)}`;
+      if (cumKcal) {
+        const kcal = cumKcal[i - 1] + frac * (cumKcal[i] - cumKcal[i - 1]);
+        text += ` · ${Math.round(kcal * 4.184)} kJ / ${Math.round(kcal)} kcal`;
+      }
+      showDetailTooltip(text, e);
+
+      const y = linePts[i - 1].y + frac * (linePts[i].y - linePts[i - 1].y);
+      hoverIndicator.setAttribute('cx', String(x));
+      hoverIndicator.setAttribute('cy', String(y));
+      hoverIndicator.setAttribute('display', 'inline');
+    });
+
+    hitPath.addEventListener('mouseleave', () => {
+      hideDetailTooltip();
+      hoverIndicator.setAttribute('display', 'none');
     });
 
     let peakIndex = 0;

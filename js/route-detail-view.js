@@ -212,9 +212,19 @@ function initDetailWhenButton() {
     if (dateInput.showPicker) dateInput.showPicker();
   });
 
+  // iOS Safari sin kalender-picker lar deg BLA til hvilken som helst
+  // måned/år — det er Apples egen UI, ikke noe min/max-attributtene kan
+  // begrense. Det de faktisk garanterer er at valgt VERDI ikke går utenfor
+  // grensene, men vi klemmer den likevel her som en ekstra sikring på tvers
+  // av nettlesere.
   dateInput.addEventListener('change', () => {
-    selectedForecastDate = dateInput.value;
-    btn.textContent = dateInput.value === todayIso ? 'Nå' : formatShortDate(dateInput.value);
+    let value = dateInput.value;
+    if (value < dateInput.min) value = dateInput.min;
+    if (value > dateInput.max) value = dateInput.max;
+    if (value !== dateInput.value) dateInput.value = value;
+
+    selectedForecastDate = value;
+    btn.textContent = value === todayIso ? 'Nå' : formatShortDate(value);
     refreshDetailWeather();
     refreshRainWindowIfApplicable();
   });

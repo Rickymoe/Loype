@@ -682,6 +682,11 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .loype-detail-when .loype-pace-mode-btn {
   padding: 5px 14px;
+  /* Datofeltet (usynlig, se under) dekker akkurat denne knappens flate —
+     for kort tekst (f.eks. en dato som "24.9.") gjorde treffområdet for
+     lite til å treffe pålitelig på touch. */
+  min-width: 44px;
+  min-height: 40px;
 }
 
 .loype-when-btn {

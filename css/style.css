@@ -705,6 +705,13 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   cursor: pointer;
 }
 
+/* Nettleserens interne kalender-ikon (en egen sone inni feltet) har sin
+   egen markør-cursor uavhengig av feltets — derav pil/hånd-flimringen
+   innenfor samme knapp. Tvinges til samme pointer-cursor som resten. */
+#loype-detail-date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+}
+
 .loype-detail-tooltip {
   position: fixed;
   pointer-events: none;

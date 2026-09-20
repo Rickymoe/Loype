@@ -696,20 +696,19 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .loype-when-btn:hover { background: var(--color-info-bg); }
 
+/* pointer-events:none — et natit datofelt har sine egne interne
+   treffsoner (dag/måned/år-segmenter) som ikke nødvendigvis dekker hele
+   den oppskalerte boksen, så bare en liten flik av knappen var faktisk
+   klikkbar. Feltet ligger fortsatt her i riktig posisjon/størrelse som et
+   ankerpunkt for iOS sin native picker, men selve knappen under mottar nå
+   alle klikk og kaller showPicker() selv (se initDetailWhenButton). */
 #loype-detail-date-input {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
   opacity: 0;
-  cursor: pointer;
-}
-
-/* Nettleserens interne kalender-ikon (en egen sone inni feltet) har sin
-   egen markør-cursor uavhengig av feltets — derav pil/hånd-flimringen
-   innenfor samme knapp. Tvinges til samme pointer-cursor som resten. */
-#loype-detail-date-input::-webkit-calendar-picker-indicator {
-  cursor: pointer;
+  pointer-events: none;
 }
 
 .loype-detail-tooltip {

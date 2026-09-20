@@ -386,6 +386,19 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   margin-bottom: 4px;
 }
 
+.loype-sun-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 10px;
+}
+
+.loype-sun-badge svg {
+  width: 15px;
+  height: 15px;
+  color: #f9a825;
+}
+
 .loype-detail-rain-window {
   font-size: 12px;
   color: #1a73e8;

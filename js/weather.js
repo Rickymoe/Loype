@@ -61,15 +61,12 @@ async function fetchWeatherForPoint(lat, lng, isoDate) {
   };
 }
 
-function renderDetailWeather(weather) {
-  const el = document.getElementById('loype-detail-weather');
-  if (!el) return;
+function buildWeatherLineHtml(weather) {
   const parts = [`${weatherSymbolEmoji(weather.symbolCode)} ${weather.temp != null ? Math.round(weather.temp) + '°C' : '–'}`];
   if (weather.windSpeed != null) parts.push(`💨 ${weather.windSpeed.toFixed(1)} m/s ${weatherWindDir(weather.windDir ?? 0)}`);
   if (weather.precipitation != null) parts.push(`🌧 ${weather.precipitation.toFixed(1)} mm`);
   if (weather.humidity != null) parts.push(`💧 ${Math.round(weather.humidity)}%`);
-  el.textContent = parts.join(' · ');
-  el.classList.remove('hidden');
+  return parts.join(' · ');
 }
 
 // Henter hele time-for-time-serien for nedbør (kun der MET faktisk gir
@@ -144,6 +141,8 @@ async function refreshDetailRainWindow(durationHours) {
   }
 }
 
+// Vær og soltider hentes parallelt og rendres i én omgang, slik at det ene
+// kallet aldri kan overskrive det andres resultat i den samme linja.
 async function refreshDetailWeather() {
   const el = document.getElementById('loype-detail-weather');
   if (!currentProfile || !el) return;
@@ -152,12 +151,18 @@ async function refreshDetailWeather() {
   el.textContent = 'Henter vær …';
   el.classList.remove('hidden');
 
-  try {
-    const weather = await fetchWeatherForPoint(start.lat, start.lng, selectedForecastDate);
-    if (!document.getElementById('loype-detail-weather')) return; // modal lukket i mellomtiden
-    renderDetailWeather(weather);
-  } catch (err) {
-    if (!document.getElementById('loype-detail-weather')) return;
+  const [weatherResult, sunResult] = await Promise.allSettled([
+    fetchWeatherForPoint(start.lat, start.lng, selectedForecastDate),
+    fetchSunTimes(start.lat, start.lng, selectedForecastDate),
+  ]);
+
+  if (!document.getElementById('loype-detail-weather')) return; // modal lukket i mellomtiden
+
+  if (weatherResult.status !== 'fulfilled') {
     el.textContent = 'Kunne ikke hente værdata.';
+    return;
   }
+
+  const sunHtml = sunResult.status === 'fulfilled' ? buildSunTimesHtml(sunResult.value) : '';
+  el.innerHTML = buildWeatherLineHtml(weatherResult.value) + sunHtml;
 }

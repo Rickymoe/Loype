@@ -2,6 +2,48 @@
 
 :root {
   --loype-accent: #2e7d32;
+
+  /* Skriftstørrelser — samlet fra hele stilarket, ingen verdier endret */
+  --fs-2xs: 11px;
+  --fs-xs: 12px;
+  --fs-sm: 13px;
+  --fs-base: 14px;
+  --fs-md: 15px;
+  --fs-lg: 16px;
+  --fs-xl: 18px;
+  --fs-2xl: 20px;
+  --fs-3xl: 22px;
+  --fs-4xl: 24px;
+
+  /* Hjørneradius */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
+  /* Nøytrale farger */
+  --color-heading: #1a1a2e;
+  --color-text: #333;
+  --color-text-muted: #444;
+  --color-text-mild: #555;
+  --color-text-soft: #666;
+  --color-label: #888;
+  --color-subtle: #999;
+  --color-disabled: #aaa;
+  --color-border-light: #ccc;
+  --color-border: #ddd;
+  --color-border-lighter: #eee;
+  --color-surface-alt: #f8f9fa;
+  --color-mint: #f1f8f2;
+
+  /* Statusfarger */
+  --color-success-bg: #e8f5e9;
+  --color-error: #c62828;
+  --color-error-bg: #ffebee;
+  --color-info: #1a73e8;
+  --color-info-bg: #f0f7ff;
+  --color-sun: #f9a825;
+  --color-hydration: #00838f;
 }
 
 html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -31,15 +73,15 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .panel-collapse-btn {
   background: none;
   border: none;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   line-height: 1;
-  color: #888;
+  color: var(--color-label);
   cursor: pointer;
   padding: 2px 4px;
   flex-shrink: 0;
 }
 
-.panel-collapse-btn:hover { color: #333; }
+.panel-collapse-btn:hover { color: var(--color-text); }
 
 .panel-header-actions {
   display: flex;
@@ -54,16 +96,16 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   z-index: 10;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   padding: 16px;
   width: 240px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
 }
 
 #loype-info-panel h3 {
-  font-size: 13px;
+  font-size: var(--fs-sm);
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-heading);
   margin-bottom: 10px;
   padding-right: 16px;
 }
@@ -76,8 +118,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 }
 
 #loype-info-panel ul li {
-  font-size: 12px;
-  color: #555;
+  font-size: var(--fs-xs);
+  color: var(--color-text-mild);
   line-height: 1.4;
 }
 
@@ -87,14 +129,14 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   right: 10px;
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: var(--fs-xl);
   line-height: 1;
-  color: #aaa;
+  color: var(--color-disabled);
   cursor: pointer;
   padding: 0;
 }
 
-#loype-info-panel .close-btn:hover { color: #555; }
+#loype-info-panel .close-btn:hover { color: var(--color-text-mild); }
 
 @media (max-width: 580px) {
   #loype-info-panel {
@@ -123,8 +165,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .field-group { margin: 10px 0; }
 
 .loype-profile-box {
-  background: #f8f9fa;
-  border-radius: 10px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-lg);
   padding: 10px 12px 4px;
   margin: 10px 0;
 }
@@ -141,14 +183,14 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   min-width: 0;
 }
 
-.field-group label { display: block; font-size: 11px; color: #888; margin-bottom: 4px; }
+.field-group label { display: block; font-size: var(--fs-2xs); color: var(--color-label); margin-bottom: 4px; }
 
 .field-group input {
   width: 100%;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   padding: 5px 8px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
 }
 
 .hidden { display: none; }
@@ -165,8 +207,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   background: white;
   color: var(--loype-accent);
   border: 1px solid var(--loype-accent);
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs);
   cursor: pointer;
 }
 
@@ -189,31 +231,31 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   flex-shrink: 0;
   width: 34px;
   background: white;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #666;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--fs-base);
+  color: var(--color-text-soft);
   cursor: pointer;
 }
 
 .loype-pace-reset-btn:hover {
-  background: #f1f8f2;
+  background: var(--color-mint);
   color: var(--loype-accent);
 }
 
 #loype-panel {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   padding: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.15);
 }
 
-#loype-panel h2 { font-size: 15px; font-weight: 600; color: #1a1a2e; }
+#loype-panel h2 { font-size: var(--fs-md); font-weight: 600; color: var(--color-heading); }
 
 .loype-instructions {
-  font-size: 12px;
-  color: #555;
+  font-size: var(--fs-xs);
+  color: var(--color-text-mild);
   margin-bottom: 10px;
   line-height: 1.4;
 }
@@ -235,27 +277,27 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .loype-favorite-icon-btn {
   width: 36px;
   height: 36px;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   background: #fff;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-lighter);
   box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
-  font-size: 16px;
+  font-size: var(--fs-lg);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
 }
 
-.loype-favorite-icon-btn:hover { background: #f1f8f2; }
+.loype-favorite-icon-btn:hover { background: var(--color-mint); }
 
 .loype-favorite-add-btn {
   color: var(--loype-accent);
-  font-size: 20px;
+  font-size: var(--fs-2xl);
   font-weight: 600;
 }
 
 .loype-favorite-add-btn:disabled {
-  color: #ccc;
+  color: var(--color-border-light);
   cursor: default;
 }
 
@@ -269,9 +311,9 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   height: 16px;
   border-radius: 50%;
   background: #fff;
-  border: 1px solid #ddd;
-  color: #999;
-  font-size: 11px;
+  border: 1px solid var(--color-border);
+  color: var(--color-subtle);
+  font-size: var(--fs-2xs);
   line-height: 1;
   padding: 0;
   display: flex;
@@ -280,7 +322,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   cursor: pointer;
 }
 
-.loype-favorite-delete-badge:hover { color: #c62828; border-color: #c62828; }
+.loype-favorite-delete-badge:hover { color: var(--color-error); border-color: var(--color-error); }
 
 .loype-icon-picker {
   position: absolute;
@@ -291,7 +333,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   background: #fff;
-  border-radius: 10px;
+  border-radius: var(--radius-lg);
   padding: 8px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
@@ -299,14 +341,14 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .loype-icon-picker-option {
   width: 32px;
   height: 32px;
-  border: 1px solid #eee;
-  border-radius: 6px;
+  border: 1px solid var(--color-border-lighter);
+  border-radius: var(--radius-sm);
   background: #fff;
-  font-size: 16px;
+  font-size: var(--fs-lg);
   cursor: pointer;
 }
 
-.loype-icon-picker-option:hover { background: #f1f8f2; }
+.loype-icon-picker-option:hover { background: var(--color-mint); }
 
 .loype-icon-row {
   display: flex;
@@ -319,7 +361,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   height: 36px;
   border-radius: 50%;
   background: #fff;
-  border: 1px solid #eee;
+  border: 1px solid var(--color-border-lighter);
   box-shadow: 0 1px 4px rgba(0,0,0,.15);
   display: flex;
   align-items: center;
@@ -327,7 +369,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   cursor: pointer;
 }
 
-.loype-icon-btn:hover { background: #f1f8f2; }
+.loype-icon-btn:hover { background: var(--color-mint); }
 
 .loype-icon-btn svg {
   width: 20px;
@@ -338,8 +380,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  color: #333;
+  font-size: var(--fs-xs);
+  color: var(--color-text);
   margin-top: 10px;
   margin-bottom: 10px;
   cursor: pointer;
@@ -358,59 +400,59 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   background: white;
   color: var(--loype-accent);
   border: 1px solid var(--loype-accent);
-  border-radius: 8px;
-  font-size: 12px;
+  border-radius: var(--radius-md);
+  font-size: var(--fs-xs);
   cursor: pointer;
 }
 
-.loype-btn:hover:not(:disabled) { background: #f1f8f2; }
-.loype-btn:disabled { color: #aaa; border-color: #aaa; cursor: default; }
+.loype-btn:hover:not(:disabled) { background: var(--color-mint); }
+.loype-btn:disabled { color: var(--color-disabled); border-color: var(--color-disabled); cursor: default; }
 
 #loype-share-status {
   margin-top: 8px;
   margin-bottom: 8px;
-  font-size: 12px;
-  color: #2e7d32;
-  background: #e8f5e9;
+  font-size: var(--fs-xs);
+  color: var(--loype-accent);
+  background: var(--color-success-bg);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   overflow-wrap: break-word;
   word-break: break-all;
 }
 
 #loype-error-msg {
   margin-top: 8px;
-  font-size: 12px;
-  color: #c62828;
-  background: #ffebee;
+  font-size: var(--fs-xs);
+  color: var(--color-error);
+  background: var(--color-error-bg);
   padding: 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 }
 
 #loype-result { margin-top: 10px; }
 
 #loype-distance-value {
-  font-size: 24px;
+  font-size: var(--fs-4xl);
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-heading);
   margin-bottom: 8px;
 }
 
 #loype-time-value {
-  font-size: 12px;
-  color: #2e7d32;
+  font-size: var(--fs-xs);
+  color: var(--loype-accent);
   margin-bottom: 8px;
 }
 
 #loype-energy-value {
-  font-size: 12px;
-  color: #555;
+  font-size: var(--fs-xs);
+  color: var(--color-text-mild);
   margin-bottom: 8px;
 }
 
 #loype-bmi-value {
-  font-size: 11px;
-  color: #888;
+  font-size: var(--fs-2xs);
+  color: var(--color-label);
   margin-top: -6px;
   margin-bottom: 6px;
 }
@@ -423,8 +465,8 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   width: 100%;
   height: 90px;
   display: block;
-  background: #f1f8f2;
-  border-radius: 8px;
+  background: var(--color-mint);
+  border-radius: var(--radius-md);
   cursor: pointer;
 }
 
@@ -456,7 +498,7 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 #loype-detail-panel {
   position: relative;
   background: #fff;
-  border-radius: 12px;
+  border-radius: var(--radius-xl);
   padding: 20px;
   width: min(940px, 92vw);
   max-height: 90vh;
@@ -470,13 +512,13 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   right: 14px;
   background: none;
   border: none;
-  font-size: 22px;
+  font-size: var(--fs-3xl);
   line-height: 1;
-  color: #888;
+  color: var(--color-label);
   cursor: pointer;
 }
 
-#loype-detail-close:hover { color: #333; }
+#loype-detail-close:hover { color: var(--color-text); }
 
 .loype-detail-header {
   display: flex;
@@ -488,14 +530,14 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 }
 
 #loype-detail-summary {
-  font-size: 14px;
+  font-size: var(--fs-base);
   font-weight: 600;
-  color: #1a1a2e;
+  color: var(--color-heading);
 }
 
 .loype-detail-weather {
-  font-size: 13px;
-  color: #444;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
   margin-top: -4px;
   margin-bottom: 4px;
 }
@@ -510,18 +552,18 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .loype-sun-badge svg {
   width: 15px;
   height: 15px;
-  color: #f9a825;
+  color: var(--color-sun);
 }
 
 .loype-detail-rain-window {
-  font-size: 12px;
-  color: #1a73e8;
+  font-size: var(--fs-xs);
+  color: var(--color-info);
   margin-bottom: 12px;
 }
 
 .loype-detail-hydration {
-  font-size: 12px;
-  color: #00838f;
+  font-size: var(--fs-xs);
+  color: var(--color-hydration);
   margin-bottom: 12px;
 }
 
@@ -570,11 +612,11 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 }
 
 .loype-when-btn {
-  color: #1a73e8;
-  border-color: #1a73e8;
+  color: var(--color-info);
+  border-color: var(--color-info);
 }
 
-.loype-when-btn:hover { background: #f0f7ff; }
+.loype-when-btn:hover { background: var(--color-info-bg); }
 
 #loype-detail-date-input {
   position: absolute;
@@ -590,9 +632,9 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   pointer-events: none;
   background: rgba(26, 26, 46, 0.92);
   color: #fff;
-  font-size: 12px;
+  font-size: var(--fs-xs);
   padding: 4px 8px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   white-space: nowrap;
   z-index: 1001;
 }
@@ -601,6 +643,6 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   width: 100%;
   height: auto;
   display: block;
-  background: #f8f9fa;
-  border-radius: 8px;
+  background: var(--color-surface-alt);
+  border-radius: var(--radius-md);
 }

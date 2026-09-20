@@ -508,6 +508,11 @@ function initLoypePanel() {
   });
   document.getElementById('loype-pace-run-btn').addEventListener('click', () => setPaceMode('run'));
   document.getElementById('loype-pace-walk-btn').addEventListener('click', () => setPaceMode('walk'));
+  document.getElementById('loype-pace-reset-btn').addEventListener('click', () => {
+    document.getElementById('loype-pace-input').value = PACE_DEFAULTS[paceMode];
+    persistPaceValue();
+    updateDistanceAndChart();
+  });
   initPanelCollapse('loype-panel', 'loype-panel-collapse-btn');
   updateLoypeControls();
 

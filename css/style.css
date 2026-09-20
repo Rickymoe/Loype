@@ -91,6 +91,32 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   color: white;
 }
 
+.loype-pace-input-row {
+  display: flex;
+  gap: 6px;
+}
+
+.loype-pace-input-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.loype-pace-reset-btn {
+  flex-shrink: 0;
+  width: 34px;
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #666;
+  cursor: pointer;
+}
+
+.loype-pace-reset-btn:hover {
+  background: #f1f8f2;
+  color: var(--loype-accent);
+}
+
 #loype-panel {
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(8px);

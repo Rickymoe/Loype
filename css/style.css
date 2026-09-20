@@ -379,6 +379,13 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   color: #1a1a2e;
 }
 
+.loype-detail-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
 .loype-detail-pace-mode {
   flex-shrink: 0;
   width: 130px;
@@ -393,6 +400,13 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 .loype-detail-when .loype-pace-mode-btn {
   padding: 5px 14px;
 }
+
+.loype-when-btn {
+  color: #1a73e8;
+  border-color: #1a73e8;
+}
+
+.loype-when-btn:hover { background: #f0f7ff; }
 
 #loype-detail-date-input {
   position: absolute;

@@ -252,13 +252,15 @@ function buildDetailModalSkeleton() {
       <button id="loype-detail-close" aria-label="Lukk">&times;</button>
       <div class="loype-detail-header">
         <div id="loype-detail-summary"></div>
-        <div class="loype-detail-when">
-          <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn">Nå</button>
-          <input type="date" id="loype-detail-date-input" />
-        </div>
-        <div class="loype-pace-mode loype-detail-pace-mode">
-          <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
-          <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
+        <div class="loype-detail-controls">
+          <div class="loype-detail-when">
+            <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn loype-when-btn">Nå</button>
+            <input type="date" id="loype-detail-date-input" />
+          </div>
+          <div class="loype-pace-mode loype-detail-pace-mode">
+            <button type="button" id="loype-detail-pace-run-btn" class="loype-pace-mode-btn">Løp</button>
+            <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>
+          </div>
         </div>
       </div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>

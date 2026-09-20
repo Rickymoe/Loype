@@ -596,6 +596,33 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   margin-bottom: 14px;
 }
 
+.loype-detail-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin-bottom: 8px;
+  font-size: var(--fs-2xs);
+  color: var(--color-text-soft);
+}
+
+.loype-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.loype-legend-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+
+.loype-legend-note {
+  color: var(--color-label);
+}
+
 .loype-detail-ai-row .loype-btn {
   flex: 0 0 auto;
 }

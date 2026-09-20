@@ -75,6 +75,31 @@ function energyLineColor(grade) {
   return '#e53935';
 }
 
+// Y-aksen strakk seg alltid til nøyaktig min/maks høyde, så en tur med bare
+// noen få meter reell høydeforskjell ble tegnet like bratt som en ekte
+// fjellside. Regner i stedet ut "pene" akse-grenser (rundt trinn, avrundet
+// ned/opp) med et minimumsspenn — en flat tur ser flat ut, en bratt tur
+// ser bratt ut, uansett hvor liten variasjonen faktisk er.
+function niceAxisBounds(min, max) {
+  const MIN_DISPLAY_RANGE = 20;
+  const displayRange = Math.max(max - min, MIN_DISPLAY_RANGE);
+
+  const rawStep = displayRange / 4;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const normalized = rawStep / magnitude;
+  let step;
+  if (normalized < 1.5) step = 1 * magnitude;
+  else if (normalized < 3) step = 2 * magnitude;
+  else if (normalized < 7) step = 5 * magnitude;
+  else step = 10 * magnitude;
+
+  const niceMin = Math.floor(min / step) * step;
+  let niceMax = Math.ceil(max / step) * step;
+  while (niceMax - niceMin < MIN_DISPLAY_RANGE) niceMax += step;
+
+  return { min: niceMin, max: niceMax, step };
+}
+
 // Kumulativ, høydejustert reisetid til hvert punkt i profilen — samme
 // grad-avhengige modell som segmentTimeSeconds, men regnet direkte fra
 // avstandsprofilen (som også dekker det speilede returbenet).
@@ -399,6 +424,13 @@ function buildDetailModalSkeleton() {
           </svg>
         </button>
       </div>
+      <div class="loype-detail-legend">
+        <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#43a047"></span>Nedover (billig)</span>
+        <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ffb300"></span>Flatt</span>
+        <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ff7043"></span>Bratt</span>
+        <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#e53935"></span>Svært bratt</span>
+        <span class="loype-legend-note">— linja viser tid/energi langs ruten, hold musen over for detaljer</span>
+      </div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
     <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>
@@ -467,9 +499,11 @@ function renderDetailChart(profile) {
 
   const totalKm = profile[profile.length - 1].distKm;
   const elevations = profile.map(p => p.elevation);
-  const min = Math.min(...elevations);
-  const max = Math.max(...elevations);
-  const range = Math.max(max - min, 1);
+  const rawMin = Math.min(...elevations);
+  const rawMax = Math.max(...elevations);
+  const niceBounds = niceAxisBounds(rawMin, rawMax);
+  const min = niceBounds.min;
+  const range = niceBounds.max - niceBounds.min;
 
   const xFor = distKm => plotLeft + (totalKm > 0 ? (distKm / totalKm) : 0) * (plotRight - plotLeft);
   const yFor = elevation => plotTop + (1 - (elevation - min) / range) * (plotBottom - plotTop);
@@ -660,9 +694,7 @@ function renderDetailChart(profile) {
   rulerTick.setAttribute('stroke', '#999');
   svg.appendChild(rulerTick);
 
-  const yTickCount = 4;
-  for (let i = 0; i <= yTickCount; i++) {
-    const value = min + (range * i) / yTickCount;
+  for (let value = niceBounds.min; value <= niceBounds.max + 0.001; value += niceBounds.step) {
     const y = yFor(value);
     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     tick.setAttribute('x1', String(rulerX));

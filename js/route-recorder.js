@@ -148,6 +148,7 @@ function updateLoypeControls() {
   document.getElementById('loype-clear-btn').disabled = routePoints.length === 0;
   document.getElementById('loype-share-btn').disabled = routePoints.length < 2;
   document.getElementById('loype-gpx-btn').disabled = routePoints.length < 2;
+  updateFavoriteAddButtonState();
 }
 
 function showLoypeError(msg) {

@@ -1,7 +1,9 @@
 // Favorittruter lagres lokalt (samme mønster som profile.js), og gjenbruker
-// akkurat samme punkt-koding som Del rute (route-export.js) — bare at
-// resultatet havner under et navn i localStorage i stedet for i en URL.
+// akkurat samme punkt-koding som Del rute (route-export.js). Hver favoritt
+// er nå kun et valgt ikon — ikke noe navn — vist som en liten firkant på
+// samme rad som "Min posisjon".
 const FAVORITES_STORAGE_KEY = 'loype-favorites';
+const FAVORITE_ICON_CHOICES = ['🏔️', '🌲', '🌊', '🏙️', '🚩', '❤️', '🐾', '⭐'];
 
 function loadFavorites() {
   try {
@@ -19,43 +21,99 @@ function saveFavoritesList(list) {
   }
 }
 
-function renderFavoritesList() {
-  const container = document.getElementById('loype-favorites-list');
+function renderFavoritesIcons() {
+  const container = document.getElementById('loype-favorites-icons');
   const favorites = loadFavorites();
   container.innerHTML = '';
 
-  if (favorites.length === 0) {
-    container.classList.add('hidden');
-    return;
-  }
-  container.classList.remove('hidden');
-
   favorites.forEach((fav, index) => {
-    const row = document.createElement('div');
-    row.className = 'loype-favorite-row';
+    const wrap = document.createElement('div');
+    wrap.className = 'loype-favorite-icon-wrap';
 
-    const nameBtn = document.createElement('button');
-    nameBtn.type = 'button';
-    nameBtn.className = 'loype-favorite-name';
-    nameBtn.textContent = fav.name;
-    nameBtn.addEventListener('click', () => loadFavoriteRoute(fav));
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'loype-favorite-icon-btn';
+    btn.textContent = fav.icon || '⭐';
+    btn.title = 'Last inn favorittrute';
+    btn.addEventListener('click', () => loadFavoriteRoute(fav));
 
-    const deleteBtn = document.createElement('button');
-    deleteBtn.type = 'button';
-    deleteBtn.className = 'loype-favorite-delete';
-    deleteBtn.setAttribute('aria-label', `Slett ${fav.name}`);
-    deleteBtn.textContent = '×';
-    deleteBtn.addEventListener('click', () => {
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'loype-favorite-delete-badge';
+    del.setAttribute('aria-label', 'Slett favoritt');
+    del.textContent = '×';
+    del.addEventListener('click', (e) => {
+      e.stopPropagation();
       const updated = loadFavorites();
       updated.splice(index, 1);
       saveFavoritesList(updated);
-      renderFavoritesList();
+      renderFavoritesIcons();
     });
 
-    row.appendChild(nameBtn);
-    row.appendChild(deleteBtn);
-    container.appendChild(row);
+    wrap.appendChild(btn);
+    wrap.appendChild(del);
+    container.appendChild(wrap);
   });
+
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.id = 'loype-add-favorite-btn';
+  addBtn.className = 'loype-favorite-icon-btn loype-favorite-add-btn';
+  addBtn.textContent = '+';
+  addBtn.title = 'Lagre denne ruten som favoritt';
+  addBtn.disabled = routePoints.length < 2;
+  addBtn.addEventListener('click', toggleIconPicker);
+  container.appendChild(addBtn);
+}
+
+function updateFavoriteAddButtonState() {
+  const btn = document.getElementById('loype-add-favorite-btn');
+  if (btn) btn.disabled = routePoints.length < 2;
+}
+
+function toggleIconPicker(e) {
+  e.stopPropagation();
+  const existing = document.getElementById('loype-icon-picker');
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  if (routePoints.length < 2) return;
+
+  const picker = document.createElement('div');
+  picker.id = 'loype-icon-picker';
+  picker.className = 'loype-icon-picker';
+
+  FAVORITE_ICON_CHOICES.forEach(icon => {
+    const opt = document.createElement('button');
+    opt.type = 'button';
+    opt.className = 'loype-icon-picker-option';
+    opt.textContent = icon;
+    opt.addEventListener('click', () => {
+      saveFavoriteWithIcon(icon);
+      picker.remove();
+    });
+    picker.appendChild(opt);
+  });
+
+  document.getElementById('loype-favorites-icons').appendChild(picker);
+
+  document.addEventListener('click', function closeOnce(ev) {
+    if (!picker.contains(ev.target)) {
+      picker.remove();
+      document.removeEventListener('click', closeOnce);
+    }
+  });
+}
+
+function saveFavoriteWithIcon(icon) {
+  const mirror = document.getElementById('loype-mirror-checkbox').checked;
+  const points = routePoints.map(p => [Math.round(p.lat * 1e5) / 1e5, Math.round(p.lng * 1e5) / 1e5]);
+
+  const favorites = loadFavorites();
+  favorites.push({ icon, points, mirror, savedAt: new Date().toISOString() });
+  saveFavoritesList(favorites);
+  renderFavoritesIcons();
 }
 
 // Samme flyt som loadSharedRouteFromUrl (route-export.js): tegner opp
@@ -85,39 +143,8 @@ function loadFavoriteRoute(fav) {
     });
 }
 
-function confirmSaveFavorite() {
-  const input = document.getElementById('loype-favorite-name-input');
-  const name = input.value.trim();
-  if (!name) {
-    input.focus();
-    return;
-  }
-
-  const mirror = document.getElementById('loype-mirror-checkbox').checked;
-  const points = routePoints.map(p => [Math.round(p.lat * 1e5) / 1e5, Math.round(p.lng * 1e5) / 1e5]);
-
-  const favorites = loadFavorites();
-  favorites.push({ name, points, mirror, savedAt: new Date().toISOString() });
-  saveFavoritesList(favorites);
-
-  input.value = '';
-  flashSavedFeedback();
-  renderFavoritesList();
-}
-
-function flashSavedFeedback() {
-  const btn = document.getElementById('loype-favorite-save-btn');
-  const original = btn.textContent;
-  btn.textContent = '✓';
-  setTimeout(() => { btn.textContent = original; }, 1500);
-}
-
 function initFavorites() {
-  document.getElementById('loype-favorite-save-btn').addEventListener('click', confirmSaveFavorite);
-  document.getElementById('loype-favorite-name-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') confirmSaveFavorite();
-  });
-  renderFavoritesList();
+  renderFavoritesIcons();
 }
 
 document.addEventListener('DOMContentLoaded', initFavorites);

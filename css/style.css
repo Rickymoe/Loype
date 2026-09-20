@@ -206,67 +206,95 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   line-height: 1.4;
 }
 
-.loype-favorites-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.loype-favorite-row {
+.loype-favorites-icons {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
   gap: 6px;
+  flex: 1;
+  position: relative;
 }
 
-.loype-favorite-name {
-  flex: 1;
-  text-align: left;
-  background: white;
-  border: 1px solid var(--loype-accent);
-  color: var(--loype-accent);
+.loype-favorite-icon-wrap {
+  position: relative;
+}
+
+.loype-favorite-icon-btn {
+  width: 36px;
+  height: 36px;
   border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-
-.loype-favorite-name:hover { background: #f1f8f2; }
-
-.loype-favorite-delete {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border: none;
-  background: none;
-  color: #aaa;
+  background: #fff;
+  border: 1px solid #eee;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .15);
   font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  border-radius: 6px;
-}
-
-.loype-favorite-delete:hover { color: #c62828; background: #ffebee; }
-
-.loype-favorite-save-row {
   display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  margin-bottom: 8px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.loype-favorite-save-row input {
-  flex: 1;
-  min-width: 0;
-  font-size: 12px;
-  padding: 5px 8px;
+.loype-favorite-icon-btn:hover { background: #f1f8f2; }
+
+.loype-favorite-add-btn {
+  color: var(--loype-accent);
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.loype-favorite-add-btn:disabled {
+  color: #ccc;
+  cursor: default;
+}
+
+.loype-favorite-add-btn:disabled:hover { background: #fff; }
+
+.loype-favorite-delete-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  color: #999;
+  font-size: 11px;
+  line-height: 1;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }
 
-.loype-favorite-save-row .loype-pace-reset-btn {
-  flex-shrink: 0;
+.loype-favorite-delete-badge:hover { color: #c62828; border-color: #c62828; }
+
+.loype-icon-picker {
+  position: absolute;
+  top: 42px;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: #fff;
+  border-radius: 10px;
+  padding: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
+
+.loype-icon-picker-option {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.loype-icon-picker-option:hover { background: #f1f8f2; }
 
 .loype-icon-row {
   display: flex;

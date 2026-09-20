@@ -189,12 +189,14 @@ function openRouteDetailView() {
   if (profile.length < 2) return;
   currentProfile = profile;
   cachedPlaceNames = null;
+  lastFocusedBeforeModal = document.activeElement;
 
   buildDetailModalSkeleton();
   initDetailPaceButtons();
   initDetailWhenButton();
   document.getElementById('loype-detail-ask-ai-btn').addEventListener('click', askAiAboutRoute);
   document.getElementById('loype-detail-copy-ai-btn').addEventListener('click', copyAiQuery);
+  setupModalKeyboardHandling();
   refreshDetailWeather();
   refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
@@ -374,6 +376,9 @@ async function copyAiQuery() {
   }
 }
 
+let lastFocusedBeforeModal = null;
+let modalKeydownHandler = null;
+
 function closeRouteDetailView() {
   if (detailModal) {
     detailModal.remove();
@@ -381,6 +386,49 @@ function closeRouteDetailView() {
   }
   currentProfile = null;
   cachedPlaceNames = null;
+
+  if (modalKeydownHandler) {
+    document.removeEventListener('keydown', modalKeydownHandler);
+    modalKeydownHandler = null;
+  }
+  // Fokus tilbake dit brukeren kom fra (grafen) i stedet for å forsvinne
+  // til toppen av siden når modalen fjernes fra DOM-en.
+  if (lastFocusedBeforeModal) {
+    lastFocusedBeforeModal.focus();
+    lastFocusedBeforeModal = null;
+  }
+}
+
+// Escape lukker modalen, og Tab/Shift+Tab holdes inni den (fokusfelle) i
+// stedet for å lekke ut til elementer bak i hovedpanelet — modalen hadde
+// ingen av delene fra før.
+function setupModalKeyboardHandling() {
+  const panel = document.getElementById('loype-detail-panel');
+  document.getElementById('loype-detail-close').focus();
+
+  modalKeydownHandler = e => {
+    if (e.key === 'Escape') {
+      closeRouteDetailView();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+
+    const focusable = Array.from(
+      panel.querySelectorAll('button, [href], input, select, textarea, [tabindex]')
+    ).filter(el => el.tabIndex !== -1 && !el.disabled && el.offsetParent !== null);
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+  document.addEventListener('keydown', modalKeydownHandler);
 }
 
 function buildDetailModalSkeleton() {
@@ -389,14 +437,14 @@ function buildDetailModalSkeleton() {
   detailModal.id = 'loype-detail-modal';
   detailModal.innerHTML = `
     <div id="loype-detail-backdrop"></div>
-    <div id="loype-detail-panel">
+    <div id="loype-detail-panel" role="dialog" aria-modal="true" aria-label="Rutedetaljer" tabindex="-1">
       <button id="loype-detail-close" aria-label="Lukk">&times;</button>
       <div class="loype-detail-header">
         <div id="loype-detail-summary"></div>
         <div class="loype-detail-controls">
           <div class="loype-detail-when">
             <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn loype-when-btn">Nå</button>
-            <input type="date" id="loype-detail-date-input" />
+            <input type="date" id="loype-detail-date-input" tabindex="-1" />
           </div>
           <div class="loype-pace-mode loype-detail-pace-mode">
             <button type="button" id="loype-detail-pace-walk-btn" class="loype-pace-mode-btn">Gå</button>

@@ -10,6 +10,8 @@ function initMap() {
     draggableCursor: 'crosshair',
     draggingCursor: 'crosshair',
     mapId: 'DEMO_MAP_ID',
+    mapTypeControlOptions: { position: google.maps.ControlPosition.TOP_RIGHT },
+    streetViewControlOptions: { position: google.maps.ControlPosition.RIGHT_BOTTOM },
   });
 
   map.addListener('click', onLoypeRouteClick);

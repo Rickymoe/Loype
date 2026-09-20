@@ -27,6 +27,7 @@
           </svg>
         </button>
       </div>
+      <div id="loype-favorites-list" class="loype-favorites-list hidden"></div>
       <div class="loype-profile-box">
         <div class="field-row">
           <div class="field-group">
@@ -74,6 +75,14 @@
           <button id="loype-share-btn" class="loype-btn" disabled>Del rute</button>
           <button id="loype-gpx-btn" class="loype-btn" disabled>Last ned GPX</button>
         </div>
+        <div class="loype-controls">
+          <button id="loype-save-favorite-btn" class="loype-btn">⭐ Lagre som favoritt</button>
+        </div>
+        <div id="loype-favorite-save-row" class="loype-favorite-save-row hidden">
+          <input type="text" id="loype-favorite-name-input" placeholder="Navn på ruten" maxlength="40" />
+          <button type="button" id="loype-favorite-confirm-btn" class="loype-btn">Lagre</button>
+          <button type="button" id="loype-favorite-cancel-btn" class="loype-btn">Avbryt</button>
+        </div>
         <div id="loype-share-status" class="hidden"></div>
       </div>
     </div>
@@ -96,6 +105,7 @@
   <script src="js/route-recorder.js"></script>
   <script src="js/route-detail-view.js"></script>
   <script src="js/route-export.js"></script>
+  <script src="js/favorites.js"></script>
   <script src="js/sun-times.js"></script>
   <script src="js/weather.js"></script>
   <script src="js/app.js"></script>

@@ -206,6 +206,68 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   line-height: 1.4;
 }
 
+.loype-favorites-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.loype-favorite-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.loype-favorite-name {
+  flex: 1;
+  text-align: left;
+  background: white;
+  border: 1px solid var(--loype-accent);
+  color: var(--loype-accent);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.loype-favorite-name:hover { background: #f1f8f2; }
+
+.loype-favorite-delete {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  color: #aaa;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.loype-favorite-delete:hover { color: #c62828; background: #ffebee; }
+
+.loype-favorite-save-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.loype-favorite-save-row input {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+}
+
+.loype-favorite-save-row .loype-btn {
+  flex: 0 0 auto;
+}
+
 .loype-icon-row {
   display: flex;
   gap: 8px;

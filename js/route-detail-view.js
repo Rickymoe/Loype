@@ -147,6 +147,7 @@ function openRouteDetailView() {
   initDetailPaceButtons();
   initDetailWhenButton();
   document.getElementById('loype-detail-ask-ai-btn').addEventListener('click', askAiAboutRoute);
+  document.getElementById('loype-detail-copy-ai-btn').addEventListener('click', copyAiQuery);
   refreshDetailWeather();
   refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
@@ -278,11 +279,7 @@ function refreshRainWindowIfApplicable() {
 // Gjenbruker teksten som allerede står i detaljvisningen (oppsummering,
 // vær, tørreste vindu) i stedet for å regne alt ut på nytt — unngår at
 // spørringen kommer ut av synk med det brukeren faktisk ser.
-// "?q="-parameteret på chatgpt.com er ikke offisielt dokumentert og kan
-// slutte å virke uten varsel — ingen annen stor AI-chat har noe tilsvarende
-// i dag (sjekket: Perplexity har et lignende uoffisielt parameter, Claude.ai
-// har ingenting).
-function askAiAboutRoute() {
+function buildAiQuery() {
   const summary = document.getElementById('loype-detail-summary')?.textContent || '';
   const weatherEl = document.getElementById('loype-detail-weather');
   const rainEl = document.getElementById('loype-detail-rain-window');
@@ -295,8 +292,28 @@ function askAiAboutRoute() {
   if (rain) lines.push(`${rain}.`);
   lines.push('Har du noen tips til denne turen?');
 
-  const url = `https://chatgpt.com/?q=${encodeURIComponent(lines.join(' '))}`;
+  return lines.join(' ');
+}
+
+// "?q="-parameteret på chatgpt.com er ikke offisielt dokumentert og kan
+// slutte å virke uten varsel — ingen annen stor AI-chat har noe tilsvarende
+// i dag (sjekket: Perplexity har et lignende uoffisielt parameter, Claude.ai
+// har ingenting — derav kopier-knappen ved siden av).
+function askAiAboutRoute() {
+  const url = `https://chatgpt.com/?q=${encodeURIComponent(buildAiQuery())}`;
   window.open(url, '_blank', 'noopener');
+}
+
+async function copyAiQuery() {
+  const btn = document.getElementById('loype-detail-copy-ai-btn');
+  try {
+    await navigator.clipboard.writeText(buildAiQuery());
+    const original = btn.textContent;
+    btn.textContent = 'Kopiert!';
+    setTimeout(() => { btn.textContent = original; }, 2000);
+  } catch (err) {
+    // stille feiler — knappen endrer seg bare ikke
+  }
 }
 
 function closeRouteDetailView() {
@@ -331,7 +348,10 @@ function buildDetailModalSkeleton() {
       </div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden"></div>
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden"></div>
-      <button id="loype-detail-ask-ai-btn" class="loype-btn loype-detail-ask-ai-btn">🤖 Spør ChatGPT om denne turen</button>
+      <div class="loype-detail-ai-row">
+        <button id="loype-detail-ask-ai-btn" class="loype-btn">🤖 Spør ChatGPT om denne turen</button>
+        <button id="loype-detail-copy-ai-btn" class="loype-btn" title="Kopier for å lime inn i f.eks. Claude.ai">📋 Kopier spørring</button>
+      </div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
     <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>

@@ -415,10 +415,14 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   margin-bottom: 12px;
 }
 
-.loype-detail-ask-ai-btn {
-  display: block;
-  width: auto;
+.loype-detail-ai-row {
+  display: flex;
+  gap: 8px;
   margin-bottom: 14px;
+}
+
+.loype-detail-ai-row .loype-btn {
+  flex: 0 0 auto;
 }
 
 .loype-detail-controls {

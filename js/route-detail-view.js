@@ -287,7 +287,8 @@ function buildAiQuery() {
   const weather = weatherEl && !weatherEl.classList.contains('hidden') ? weatherEl.textContent : '';
   const rain = rainEl && !rainEl.classList.contains('hidden') ? rainEl.textContent : '';
 
-  const lines = [`Jeg planlegger en tur: ${summary}.`];
+  const activity = paceMode === 'run' ? 'Jeg skal løpe en tur' : 'Jeg skal gå en tur';
+  const lines = [`${activity}: ${summary}.`];
   if (weather) lines.push(`Værmelding: ${weather}.`);
   if (rain) lines.push(`${rain}.`);
   lines.push('Har du noen tips til denne turen?');

@@ -44,10 +44,12 @@ function sunBadgeHtml(kind, date) {
   return `<span class="loype-sun-badge"><svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${SUN_ICON_PATHS[kind]}</svg>${time}</span>`;
 }
 
+// Mellomrommene her er reelle tegn, ikke bare CSS-margin — uten dem klistrer
+// .textContent (brukt av bl.a. AI-spørringen) badgene rett inntil hverandre.
 function buildSunTimesHtml(sun) {
   if (!sun) return '';
   const parts = [];
   if (sun.sunrise) parts.push(sunBadgeHtml('sunrise', sun.sunrise));
   if (sun.sunset) parts.push(sunBadgeHtml('sunset', sun.sunset));
-  return parts.join('');
+  return parts.length ? ' ' + parts.join(' ') : '';
 }

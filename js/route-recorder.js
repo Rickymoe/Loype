@@ -163,34 +163,57 @@ function hideLoypeError() {
 
 const KARTVERKET_HOYDEDATA_URL = 'https://ws.geonorge.no/hoydedata/v1/punkt';
 
+function chunkArray(arr, size) {
+  const chunks = [];
+  for (let i = 0; i < arr.length; i += size) {
+    chunks.push(arr.slice(i, i + size));
+  }
+  return chunks;
+}
+
+// Kartverket sitt GET-endepunkt tar koordinatene som en URL-parameter — med
+// mange punkter (lengre ruter, delte/favoritt-ruter lastet inn på én gang)
+// blir URL-en fort for lang og feiler. Open-Elevation sin gratis-instans er
+// også kjent for å bli ustabil med store batcher i én omgang. Begge deles
+// derfor opp i mindre, sekvensielle biter i stedet for én stor forespørsel.
+const ELEVATION_CHUNK_SIZE = 30;
+
 async function fetchKartverketElevation(points) {
-  const coords = JSON.stringify(points.map(p => [p.lng, p.lat]));
-  const url = `${KARTVERKET_HOYDEDATA_URL}?punkter=${encodeURIComponent(coords)}&koordsys=4326`;
-  const resp = await fetch(url);
-  if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-  const data = await resp.json();
-  return data.punkter.map(p => p.z);
+  const results = [];
+  for (const chunk of chunkArray(points, ELEVATION_CHUNK_SIZE)) {
+    const coords = JSON.stringify(chunk.map(p => [p.lng, p.lat]));
+    const url = `${KARTVERKET_HOYDEDATA_URL}?punkter=${encodeURIComponent(coords)}&koordsys=4326`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    results.push(...data.punkter.map(p => p.z));
+  }
+  return results;
 }
 
 async function fetchOpenElevation(points) {
-  const resp = await fetch('https://api.open-elevation.com/api/v1/lookup', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    },
-    body: JSON.stringify({
-      locations: points.map(p => ({ latitude: p.lat, longitude: p.lng })),
-    }),
-  });
-  if (resp.status === 429) throw new Error('rate_limit');
-  if (!resp.ok) {
-    const body = await resp.text().catch(() => '');
-    console.error('Open-Elevation error', resp.status, body);
-    throw new Error(`HTTP ${resp.status}`);
+  const results = [];
+  for (const chunk of chunkArray(points, ELEVATION_CHUNK_SIZE)) {
+    const resp = await fetch('https://api.open-elevation.com/api/v1/lookup', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+      body: JSON.stringify({
+        locations: chunk.map(p => ({ latitude: p.lat, longitude: p.lng })),
+      }),
+    });
+    if (resp.status === 429) throw new Error('rate_limit');
+    if (!resp.ok) {
+      const body = await resp.text().catch(() => '');
+      console.error('Open-Elevation error', resp.status, body);
+      throw new Error(`HTTP ${resp.status}`);
+    }
+    const data = await resp.json();
+    results.push(...data.results.map(r => r.elevation));
   }
-  const data = await resp.json();
-  return data.results.map(r => r.elevation);
+  return results;
 }
 
 // Kartverket gir Norges egen høyoppløselige høydemodell (gratis, ingen nøkkel),

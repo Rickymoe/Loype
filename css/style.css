@@ -775,6 +775,20 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   pointer-events: none;
 }
 
+/* Touch-enheter: feltet MÅ være det som blir trykket. iOS Safari åpner
+   dato-hjulet kun fra et felt som selv mottar tappet — showPicker() fra en
+   knapp under et pointer-events:none-felt gjør ingenting der (bekreftet av
+   Ricky på iPhone). På touch finnes heller ikke problemet med små
+   dag/måned/år-treffsoner; hele feltet er ett trykkmål. 16px hindrer at
+   iOS zoomer inn når feltet får fokus. */
+@media (pointer: coarse) {
+  #loype-detail-date-input {
+    pointer-events: auto;
+    font-size: 16px;
+    cursor: pointer;
+  }
+}
+
 .loype-detail-tooltip {
   position: fixed;
   pointer-events: none;

@@ -257,15 +257,16 @@ function initDetailWhenButton() {
   selectedForecastDate = todayIso;
   btn.textContent = 'Nå';
 
-  // Datofeltet ligger usynlig oppå knappen (pointer-events:none, se CSS) —
-  // kun som et riktig posisjonert/størrelsestilpasset ankerpunkt for iOS
-  // Safari sin native dato-hjul-picker. Selve knappen mottar alle klikk og
-  // trigger showPicker() via JS. Et nativt datofelt har egne interne
-  // dag/måned/år-treffsoner som ikke dekker hele en oppskalert boks, så da
-  // feltet selv var det klikkbare laget var bare en liten flik av knappen
-  // faktisk klikkbar.
+  // Datofeltet ligger usynlig oppå knappen. På mus/desktop har det
+  // pointer-events:none (se CSS): et nativt datofelt har egne interne
+  // dag/måned/år-treffsoner som ikke dekker hele en oppskalert boks, så
+  // knappen mottar klikket og kaller showPicker() selv. På touch
+  // (pointer:coarse) mottar feltet tappet direkte — iOS Safari åpner ikke
+  // dato-hjulet fra et felt uten pointer-events, og da når aldri tappet
+  // denne handleren fordi feltet ligger oppå knappen.
   btn.addEventListener('click', () => {
     if (dateInput.showPicker) dateInput.showPicker();
+    else dateInput.focus();
   });
 
   // iOS Safari sin kalender-picker lar deg BLA til hvilken som helst

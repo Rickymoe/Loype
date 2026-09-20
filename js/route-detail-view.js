@@ -110,16 +110,26 @@ function renderDetailSummary(profile) {
   }, 0);
 
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
+  const mirror = document.getElementById('loype-mirror-checkbox').checked;
+
   let timeText = '';
   if (paceSecPerKm) {
-    const mirror = document.getElementById('loype-mirror-checkbox').checked;
     let seconds = segmentTimeSeconds(paceSecPerKm, false);
     if (mirror) seconds += segmentTimeSeconds(paceSecPerKm, true);
     timeText = ` · Estimert tid: ${formatDuration(seconds)}`;
   }
 
+  let energyText = '';
+  const weightKg = parseFloat(loadProfile().weight);
+  if (paceSecPerKm && weightKg) {
+    const isRunning = paceMode === 'run';
+    let kcal = segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, false);
+    if (mirror) kcal += segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, true);
+    energyText = ` · Energi: ${Math.round(kcal * 4.184)} kJ / ${Math.round(kcal)} kcal`;
+  }
+
   document.getElementById('loype-detail-summary').textContent =
-    `${totalKm.toFixed(2)} km · ${Math.round(gain)} m stigning${timeText}`;
+    `${totalKm.toFixed(2)} km · ${Math.round(gain)} m stigning${timeText}${energyText}`;
 }
 
 function renderDetailChart(profile) {

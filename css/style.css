@@ -707,10 +707,6 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   border-radius: 3px;
 }
 
-.loype-legend-note {
-  color: var(--color-label);
-}
-
 .loype-detail-ai-row .loype-btn {
   flex: 0 0 auto;
 }
@@ -787,21 +783,6 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
     font-size: 16px;
     cursor: pointer;
   }
-}
-
-.loype-detail-tooltip {
-  position: fixed;
-  pointer-events: none;
-  background: rgba(255, 255, 255, 0.97);
-  color: var(--color-heading);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  white-space: nowrap;
-  z-index: 1001;
 }
 
 #loype-detail-chart {

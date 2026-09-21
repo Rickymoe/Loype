@@ -56,16 +56,6 @@ function gradeBucketIndex(grade) {
   return GRADE_BUCKETS.findIndex(b => grade < b.max);
 }
 
-// Fargen på energilinja følger fortegnet helning (i motsetning til
-// terrengfargen over, som kun bryr seg om oppoverbakke): nedover er billig
-// (grønt), flatt er nøytralt, oppover er dyrt (rødt/oransje).
-function energyLineColor(grade) {
-  if (grade < -0.03) return '#43a047';
-  if (grade < 0.02) return '#ffb300';
-  if (grade < 0.08) return '#ff7043';
-  return '#e53935';
-}
-
 // Y-aksen strakk seg alltid til nøyaktig min/maks høyde, så en tur med bare
 // noen få meter reell høydeforskjell ble tegnet like bratt som en ekte
 // fjellside. Regner i stedet ut "pene" akse-grenser (rundt trinn, avrundet
@@ -111,41 +101,18 @@ function buildCumulativeTimeProfile(profile, paceSecPerKm) {
   return cumSeconds;
 }
 
-// Kumulativt energiforbruk til hvert punkt i profilen — samme ACSM-modell
-// som segmentEnergyKcal, regnet direkte fra avstandsprofilen.
-function buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, isRunning) {
-  const speedMetersPerMin = 60000 / paceSecPerKm;
-  const cumKcal = [0];
-  for (let i = 1; i < profile.length; i++) {
-    const segKm = profile[i].distKm - profile[i - 1].distKm;
-    if (segKm <= 0) {
-      cumKcal.push(cumKcal[i - 1]);
-      continue;
-    }
-    const grade = Math.max(-0.4, Math.min(0.4, (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000)));
-    const vo2 = isRunning
-      ? 0.2 * speedMetersPerMin + 0.9 * speedMetersPerMin * grade + 3.5
-      : 0.1 * speedMetersPerMin + 1.8 * speedMetersPerMin * grade + 3.5;
-    const minutes = (segKm * 1000) / speedMetersPerMin;
-    cumKcal.push(cumKcal[i - 1] + (vo2 * weightKg / 1000) * 5 * minutes);
-  }
-  return cumKcal;
-}
-
-// Sykkel-varianten av de to funksjonene over, slått sammen siden begge uansett
-// trenger samme kraft/fart-løsning per delstrekning (se route-recorder.js).
+// Sykkel-varianten av buildCumulativeTimeProfile: fysikkbasert kraft/fart-
+// løsning per delstrekning i stedet for grad-faktor (se route-recorder.js).
 function buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg) {
   const vFlat = 1000 / paceSecPerKm;
   const mass = weightKg + BIKE_MASS_KG;
   const pFlat = mass * GRAVITY * BIKE_CRR * vFlat + 0.5 * BIKE_CDA * BIKE_AIR_DENSITY * vFlat ** 3;
 
   const cumSeconds = [0];
-  const cumKcal = [0];
   for (let i = 1; i < profile.length; i++) {
     const segKm = profile[i].distKm - profile[i - 1].distKm;
     if (segKm <= 0) {
       cumSeconds.push(cumSeconds[i - 1]);
-      cumKcal.push(cumKcal[i - 1]);
       continue;
     }
 
@@ -158,28 +125,8 @@ function buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg) {
     const segSeconds = (segKm * 1000) / v;
 
     cumSeconds.push(cumSeconds[i - 1] + segSeconds);
-    cumKcal.push(cumKcal[i - 1] + (power / BIKE_EFFICIENCY) * segSeconds / 4184);
   }
-  return { cumSeconds, cumKcal };
-}
-
-// Egen, momentan tooltip i stedet for nettleserens innebygde <title>-hover,
-// som alltid har en innebygd forsinkelse før den vises.
-function showDetailTooltip(text, e) {
-  const tooltip = document.getElementById('loype-detail-tooltip');
-  tooltip.textContent = text;
-  tooltip.classList.remove('hidden');
-  positionDetailTooltip(e);
-}
-
-function positionDetailTooltip(e) {
-  const tooltip = document.getElementById('loype-detail-tooltip');
-  tooltip.style.left = `${e.clientX + 14}px`;
-  tooltip.style.top = `${e.clientY + 14}px`;
-}
-
-function hideDetailTooltip() {
-  document.getElementById('loype-detail-tooltip').classList.add('hidden');
+  return cumSeconds;
 }
 
 let detailModal = null;
@@ -476,11 +423,9 @@ function buildDetailModalSkeleton() {
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ffb300"></span>Flatt</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ff7043"></span>Bratt</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#e53935"></span>Svært bratt</span>
-        <span class="loype-legend-note">— linja viser tid/energi langs ruten, hold musen over for detaljer</span>
       </div>
-      <svg id="loype-detail-chart" viewBox="0 0 1100 380" preserveAspectRatio="xMidYMid meet" role="img"></svg>
+      <svg id="loype-detail-chart" viewBox="0 0 1100 420" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
-    <div id="loype-detail-tooltip" class="loype-detail-tooltip hidden"></div>
   `;
   document.body.appendChild(detailModal);
   document.getElementById('loype-detail-close').addEventListener('click', closeRouteDetailView);
@@ -521,26 +466,21 @@ function renderDetailSummary(profile) {
 function renderDetailChart(profile) {
   const svg = document.getElementById('loype-detail-chart');
   while (svg.firstChild) svg.removeChild(svg.firstChild);
+  svg.labelBoxes = [];
 
-  const width = 1100, height = 380;
-  const plotLeft = 30, plotRight = width - 150, plotTop = 80, plotBottom = height - 40;
+  const width = 1100, height = 420;
+  const plotLeft = 30, plotRight = width - 150, plotTop = 104, plotBottom = height - 56;
   const rulerX = plotRight + 25;
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const weightKg = parseFloat(loadProfile().weight);
 
   let cumSeconds = null;
-  let cumKcal = null;
   if (paceMode === 'bike') {
     if (paceSecPerKm && weightKg) {
-      const bikeProfile = buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg);
-      cumSeconds = bikeProfile.cumSeconds;
-      cumKcal = bikeProfile.cumKcal;
+      cumSeconds = buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg);
     }
   } else {
     cumSeconds = paceSecPerKm ? buildCumulativeTimeProfile(profile, paceSecPerKm) : null;
-    cumKcal = (paceSecPerKm && weightKg)
-      ? buildCumulativeEnergyProfile(profile, paceSecPerKm, weightKg, paceMode === 'run')
-      : null;
   }
 
   const totalKm = profile[profile.length - 1].distKm;
@@ -603,120 +543,6 @@ function renderDetailChart(profile) {
     svg.appendChild(outline);
   }
 
-  // --- Svevende linje over terrenget: følger høydeprofilen, løftet opp et
-  // fast antall piksler. Hover på et hvilket som helst punkt viser tid og
-  // energiforbruk dit; ved start, topp og slutt trekkes tiden i tillegg
-  // frem med en egen etikett. ---
-  if (cumSeconds) {
-    const LINE_LIFT = 30;
-    const linePts = frontPts.map(p => ({ x: p.x, y: Math.max(20, p.y - LINE_LIFT) }));
-
-    // Linja tegnes som ett segment per delstrekning, hver farget etter
-    // hvor billig/dyr akkurat den biten er energimessig.
-    for (let i = 1; i < linePts.length; i++) {
-      const segKm = profile[i].distKm - profile[i - 1].distKm;
-      const grade = segKm > 0 ? (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000) : 0;
-
-      const seg = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      seg.setAttribute('x1', String(linePts[i - 1].x));
-      seg.setAttribute('y1', String(linePts[i - 1].y));
-      seg.setAttribute('x2', String(linePts[i].x));
-      seg.setAttribute('y2', String(linePts[i].y));
-      seg.setAttribute('stroke', energyLineColor(grade));
-      seg.setAttribute('stroke-width', '3');
-      seg.setAttribute('stroke-linecap', 'round');
-      svg.appendChild(seg);
-    }
-
-    // Prikk som følger musepekeren langs linja og viser akkurat tid/energi
-    // for punktet der pekeren faktisk treffer — interpolert mellom de to
-    // nærmeste rutepunktene, ikke bare verdien ved enden av segmentet.
-    const hoverIndicator = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-    hoverIndicator.setAttribute('r', '10');
-    hoverIndicator.setAttribute('fill', LOYPE_LINE_COLOR);
-    hoverIndicator.setAttribute('stroke', '#fff');
-    hoverIndicator.setAttribute('stroke-width', '2');
-    hoverIndicator.setAttribute('display', 'none');
-    svg.appendChild(hoverIndicator);
-
-    // Hele plottområdet er treffsone, ikke bare en smal korridor langs
-    // selve linja — musepekeren trenger bare være et sted inne i grafen,
-    // ikke nøyaktig oppå streken, for å utløse tooltip.
-    const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-    hitArea.setAttribute('x', String(plotLeft));
-    hitArea.setAttribute('y', '0');
-    hitArea.setAttribute('width', String(plotRight - plotLeft));
-    hitArea.setAttribute('height', String(plotBottom));
-    hitArea.setAttribute('fill', 'transparent');
-    svg.appendChild(hitArea);
-
-    hitArea.addEventListener('mousemove', e => {
-      const pt = svg.createSVGPoint();
-      pt.x = e.clientX;
-      pt.y = e.clientY;
-      const svgP = pt.matrixTransform(svg.getScreenCTM().inverse());
-      const x = Math.min(Math.max(svgP.x, linePts[0].x), linePts[linePts.length - 1].x);
-
-      let i = 1;
-      while (i < linePts.length - 1 && linePts[i].x < x) i++;
-      const x0 = linePts[i - 1].x, x1 = linePts[i].x;
-      const frac = x1 > x0 ? (x - x0) / (x1 - x0) : 0;
-
-      const segKm = profile[i].distKm - profile[i - 1].distKm;
-      const grade = segKm > 0 ? (profile[i].elevation - profile[i - 1].elevation) / (segKm * 1000) : 0;
-      hoverIndicator.setAttribute('fill', energyLineColor(grade));
-
-      const distKm = profile[i - 1].distKm + frac * (profile[i].distKm - profile[i - 1].distKm);
-      const seconds = cumSeconds[i - 1] + frac * (cumSeconds[i] - cumSeconds[i - 1]);
-      let text = `${formatNo(distKm, 2)} km · ${formatDuration(seconds)}`;
-      if (cumKcal) {
-        const kcal = cumKcal[i - 1] + frac * (cumKcal[i] - cumKcal[i - 1]);
-        text += ` · ${formatNo(kcal * 4.184)} kJ / ${formatNo(kcal)} kcal`;
-      }
-      showDetailTooltip(text, e);
-
-      const y = linePts[i - 1].y + frac * (linePts[i].y - linePts[i - 1].y);
-      hoverIndicator.setAttribute('cx', String(x));
-      hoverIndicator.setAttribute('cy', String(y));
-      hoverIndicator.setAttribute('display', 'inline');
-    });
-
-    hitArea.addEventListener('mouseleave', () => {
-      hideDetailTooltip();
-      hoverIndicator.setAttribute('display', 'none');
-    });
-
-    let peakIndex = 0;
-    for (let i = 1; i < profile.length; i++) {
-      if (profile[i].elevation > profile[peakIndex].elevation) peakIndex = i;
-    }
-    const keyIndexes = [...new Set([0, peakIndex, profile.length - 1])];
-
-    keyIndexes.forEach(i => {
-      const x = linePts[i].x;
-
-      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-      tick.setAttribute('x1', String(x));
-      tick.setAttribute('y1', String(linePts[i].y));
-      tick.setAttribute('x2', String(x));
-      tick.setAttribute('y2', String(frontPts[i].y));
-      tick.setAttribute('stroke', '#999');
-      tick.setAttribute('stroke-width', '1');
-      tick.setAttribute('stroke-dasharray', '3,3');
-      svg.appendChild(tick);
-
-      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      label.setAttribute('x', String(Math.min(Math.max(x, plotLeft + 20), plotRight - 20)));
-      label.setAttribute('y', String(linePts[i].y - 8));
-      label.setAttribute('text-anchor', 'middle');
-      label.setAttribute('font-size', '11');
-      label.setAttribute('font-weight', '600');
-      label.setAttribute('fill', '#5f6368');
-      label.textContent = formatDuration(cumSeconds[i]);
-      svg.appendChild(label);
-    });
-  }
-
   // --- Høyderuler til høyre ---
   const rulerTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
   rulerTick.setAttribute('x1', String(rulerX));
@@ -768,6 +594,51 @@ function renderDetailChart(profile) {
     svg.appendChild(label);
   }
 
+  // --- Tidsakse øverst, parallelt med distanseaksen. Tid og avstand henger
+  // ikke lineært sammen (bakker koster tid), så hvert tidsmerke settes der
+  // ruten faktisk når den tiden — ved å invertere den kumulative tiden. ---
+  if (cumSeconds) {
+    const axisY = 34;
+    const totalMin = cumSeconds[cumSeconds.length - 1] / 60;
+    const stepMin = [1, 2, 5, 10, 15, 20, 30, 60, 120, 180, 240].find(st => totalMin / st <= 8) || 240;
+    const timeLabel = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)}t${m % 60 ? ` ${m % 60}` : ''}`);
+    const distAtSeconds = t => {
+      let i = 1;
+      while (i < cumSeconds.length - 1 && cumSeconds[i] < t) i++;
+      const span = cumSeconds[i] - cumSeconds[i - 1];
+      const frac = span > 0 ? Math.min(1, Math.max(0, (t - cumSeconds[i - 1]) / span)) : 0;
+      return profile[i - 1].distKm + frac * (profile[i].distKm - profile[i - 1].distKm);
+    };
+
+    const axisLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    axisLine.setAttribute('x1', String(plotLeft));
+    axisLine.setAttribute('y1', String(axisY));
+    axisLine.setAttribute('x2', String(plotRight));
+    axisLine.setAttribute('y2', String(axisY));
+    axisLine.setAttribute('stroke', '#ccc');
+    svg.appendChild(axisLine);
+
+    for (let m = 0; m <= totalMin + 0.001; m += stepMin) {
+      const x = xFor(distAtSeconds(m * 60));
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tick.setAttribute('x1', String(x));
+      tick.setAttribute('y1', String(axisY));
+      tick.setAttribute('x2', String(x));
+      tick.setAttribute('y2', String(axisY - 6));
+      tick.setAttribute('stroke', '#ccc');
+      svg.appendChild(tick);
+
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', String(x));
+      label.setAttribute('y', String(axisY - 12));
+      label.setAttribute('text-anchor', 'middle');
+      label.setAttribute('font-size', '11');
+      label.setAttribute('fill', '#5f6368');
+      label.textContent = timeLabel(m);
+      svg.appendChild(label);
+    }
+  }
+
   svg.dataset.plotLeft = String(plotLeft);
   svg.dataset.plotRight = String(plotRight);
   svg.dataset.plotTop = String(plotTop);
@@ -775,6 +646,7 @@ function renderDetailChart(profile) {
   svg.dataset.totalKm = String(totalKm);
   svg.dataset.min = String(min);
   svg.dataset.range = String(range);
+
 }
 
 function addDetailLabel(profile, point, name) {
@@ -813,23 +685,50 @@ function addDetailLabel(profile, point, name) {
   dot.setAttribute('stroke-width', '2');
   svg.appendChild(dot);
 
-  // Vertikal tekst som vokser oppover fra grunnlinja, like til venstre for
-  // den stiplede linja — samme plassering som stedsnavnene i TdF-profiler.
-  const labelX = xClamped - 8;
-  const labelY = plotBottom - 4;
+  // Navnet står i en rad under km-aksen, koblet til punktet med samme
+  // prikk som på terrenget. Teksten legges på den siden av prikken som er
+  // mest naturlig (mot midten av grafen) og byttes til den andre siden hvis
+  // den kolliderer med et navn som allerede står der. Får den ikke plass
+  // noen av stedene, utelates navnet; prikken og linja står fortsatt.
+  const rowY = plotBottom + 42;
+  const chartWidth = Number(svg.viewBox.baseVal.width);
+  const text = `${name} · ${formatNo(point.elevation)} m`;
+
   const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  label.setAttribute('x', String(labelX));
-  label.setAttribute('y', String(labelY));
-  label.setAttribute('text-anchor', 'start');
+  label.setAttribute('y', String(rowY));
   label.setAttribute('font-size', '12');
   label.setAttribute('font-weight', '600');
   label.setAttribute('fill', '#1a1a2e');
-  label.setAttribute('stroke', '#fff');
-  label.setAttribute('stroke-width', '3');
-  label.setAttribute('paint-order', 'stroke');
-  label.setAttribute('transform', `rotate(-90 ${labelX} ${labelY})`);
-  label.textContent = `${name} · ${formatNo(point.distKm, 1)} km · ${formatNo(point.elevation)} m`;
+  label.textContent = text;
   svg.appendChild(label);
+  const textWidth = label.getComputedTextLength();
+
+  const GAP = 8, PAD = 10;
+  const preferRight = xClamped <= (plotLeft + plotRight) / 2;
+  const boxFor = side => (side === 'start'
+    ? { left: xClamped - 4, right: xClamped + GAP + textWidth }
+    : { left: xClamped - GAP - textWidth, right: xClamped + 4 });
+  const fits = box => box.left >= 4 && box.right <= chartWidth - 4
+    && svg.labelBoxes.every(o => box.right + PAD <= o.left || box.left - PAD >= o.right);
+
+  const side = (preferRight ? ['start', 'end'] : ['end', 'start']).find(sd => fits(boxFor(sd)));
+  if (!side) {
+    label.remove();
+    return;
+  }
+  svg.labelBoxes.push(boxFor(side));
+
+  label.setAttribute('text-anchor', side);
+  label.setAttribute('x', String(side === 'start' ? xClamped + GAP : xClamped - GAP));
+
+  const pin = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  pin.setAttribute('cx', String(xClamped));
+  pin.setAttribute('cy', String(rowY - 4));
+  pin.setAttribute('r', '4');
+  pin.setAttribute('fill', LOYPE_LINE_COLOR);
+  pin.setAttribute('stroke', '#fff');
+  pin.setAttribute('stroke-width', '2');
+  svg.appendChild(pin);
 }
 
 // Roterte etiketter vokser oppover fra grunnlinja — er toppunktet for nær

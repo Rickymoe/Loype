@@ -146,6 +146,7 @@ function openRouteDetailView() {
   document.getElementById('loype-detail-ask-ai-btn').addEventListener('click', askAiAboutRoute);
   document.getElementById('loype-detail-copy-ai-btn').addEventListener('click', copyAiQuery);
   setupModalKeyboardHandling();
+  setupDetailResizeHandling();
   refreshDetailWeather();
   refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
@@ -344,6 +345,10 @@ function closeRouteDetailView() {
     document.removeEventListener('keydown', modalKeydownHandler);
     modalKeydownHandler = null;
   }
+  if (detailResizeHandler) {
+    window.removeEventListener('resize', detailResizeHandler);
+    detailResizeHandler = null;
+  }
   // Fokus tilbake dit brukeren kom fra (grafen) i stedet for å forsvinne
   // til toppen av siden når modalen fjernes fra DOM-en.
   if (lastFocusedBeforeModal) {
@@ -463,14 +468,50 @@ function renderDetailSummary(profile) {
     `${formatNo(totalKm, 2)} km · ${formatNo(gain)} m stigning${timeText}${energyText}`;
 }
 
+function isCompactChart(svg) {
+  return svg.clientWidth > 0 && svg.clientWidth < 560;
+}
+
+// Grafen skaleres i bred modus, men tegnes i faktisk bredde i enkel modus,
+// så den må tegnes på nytt når bredden endres der (rotasjon) eller når
+// grensen mellom modusene krysses. Vær og stedsnavn hentes ikke på nytt.
+let detailResizeHandler = null;
+function redrawDetailChart() {
+  if (!currentProfile || !document.getElementById('loype-detail-chart')) return;
+  renderDetailChart(currentProfile);
+  if (cachedPlaceNames) applyPlaceLabels(currentProfile, cachedPlaceNames);
+}
+
+function setupDetailResizeHandling() {
+  const svg = document.getElementById('loype-detail-chart');
+  const stateKey = () => (isCompactChart(svg) ? `c${Math.round(svg.clientWidth)}` : 'wide');
+  let lastKey = stateKey();
+  detailResizeHandler = () => {
+    const key = stateKey();
+    if (key === lastKey) return;
+    lastKey = key;
+    redrawDetailChart();
+  };
+  window.addEventListener('resize', detailResizeHandler);
+}
+
 function renderDetailChart(profile) {
   const svg = document.getElementById('loype-detail-chart');
   while (svg.firstChild) svg.removeChild(svg.firstChild);
   svg.labelBoxes = [];
 
-  const width = 1100, height = 420;
-  const plotLeft = 30, plotRight = width - 150, plotTop = 104, plotBottom = height - 56;
+  // På smale skjermer (mobil) tegnes en enklere graf i faktisk pikselbredde
+  // i stedet for å skalere ned 1100 enheter (tekst ble ca. 4 px): kun terreng,
+  // få km-merker og en toppverdi, uten tidsakse og høyderuler.
+  const compact = isCompactChart(svg);
+  const width = compact ? Math.round(svg.clientWidth) : 1100;
+  const height = compact ? 250 : 420;
+  const plotLeft = compact ? 12 : 30;
+  const plotRight = compact ? width - 12 : width - 150;
+  const plotTop = compact ? 26 : 104;
+  const plotBottom = height - 56;
   const rulerX = plotRight + 25;
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const weightKg = parseFloat(loadProfile().weight);
 
@@ -543,37 +584,60 @@ function renderDetailChart(profile) {
     svg.appendChild(outline);
   }
 
-  // --- Høyderuler til høyre ---
-  const rulerTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-  rulerTick.setAttribute('x1', String(rulerX));
-  rulerTick.setAttribute('y1', String(plotTop));
-  rulerTick.setAttribute('x2', String(rulerX));
-  rulerTick.setAttribute('y2', String(plotBottom));
-  rulerTick.setAttribute('stroke', '#999');
-  svg.appendChild(rulerTick);
+  // --- Høyderuler til høyre (bred modus) ---
+  if (!compact) {
+    const rulerTick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    rulerTick.setAttribute('x1', String(rulerX));
+    rulerTick.setAttribute('y1', String(plotTop));
+    rulerTick.setAttribute('x2', String(rulerX));
+    rulerTick.setAttribute('y2', String(plotBottom));
+    rulerTick.setAttribute('stroke', '#999');
+    svg.appendChild(rulerTick);
 
-  for (let value = niceBounds.min; value <= niceBounds.max + 0.001; value += niceBounds.step) {
-    const y = yFor(value);
-    const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    tick.setAttribute('x1', String(rulerX));
-    tick.setAttribute('y1', String(y));
-    tick.setAttribute('x2', String(rulerX + 6));
-    tick.setAttribute('y2', String(y));
-    tick.setAttribute('stroke', '#999');
-    svg.appendChild(tick);
+    for (let value = niceBounds.min; value <= niceBounds.max + 0.001; value += niceBounds.step) {
+      const y = yFor(value);
+      const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      tick.setAttribute('x1', String(rulerX));
+      tick.setAttribute('y1', String(y));
+      tick.setAttribute('x2', String(rulerX + 6));
+      tick.setAttribute('y2', String(y));
+      tick.setAttribute('stroke', '#999');
+      svg.appendChild(tick);
 
-    const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-    label.setAttribute('x', String(rulerX + 10));
-    label.setAttribute('y', String(y + 3));
-    label.setAttribute('text-anchor', 'start');
-    label.setAttribute('font-size', '11');
-    label.setAttribute('fill', '#5f6368');
-    label.textContent = `${formatNo(value)} m`;
-    svg.appendChild(label);
+      const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      label.setAttribute('x', String(rulerX + 10));
+      label.setAttribute('y', String(y + 3));
+      label.setAttribute('text-anchor', 'start');
+      label.setAttribute('font-size', '11');
+      label.setAttribute('fill', '#5f6368');
+      label.textContent = `${formatNo(value)} m`;
+      svg.appendChild(label);
+    }
+  } else {
+    // Enkel modus: bare toppen av skalaen, som stiplet linje med verdi.
+    const topLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    topLine.setAttribute('x1', String(plotLeft));
+    topLine.setAttribute('y1', String(plotTop));
+    topLine.setAttribute('x2', String(plotRight));
+    topLine.setAttribute('y2', String(plotTop));
+    topLine.setAttribute('stroke', '#ccc');
+    topLine.setAttribute('stroke-dasharray', '3,3');
+    svg.appendChild(topLine);
+
+    const topLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    topLabel.setAttribute('x', String(plotLeft));
+    topLabel.setAttribute('y', String(plotTop - 6));
+    topLabel.setAttribute('text-anchor', 'start');
+    topLabel.setAttribute('font-size', '11');
+    topLabel.setAttribute('fill', '#5f6368');
+    topLabel.textContent = `${formatNo(niceBounds.max)} m`;
+    svg.appendChild(topLabel);
   }
 
   // --- Distansemerker under grunnlinja ---
-  const xStepKm = totalKm > 5 ? 1 : (totalKm > 1 ? 0.5 : 0.1);
+  const xStepKm = compact
+    ? ([0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 50].find(st => totalKm / st <= 4) || 100)
+    : (totalKm > 5 ? 1 : (totalKm > 1 ? 0.5 : 0.1));
   for (let d = 0; d <= totalKm + 0.001; d += xStepKm) {
     const x = xFor(d);
     const tick = document.createElementNS('http://www.w3.org/2000/svg', 'line');
@@ -587,17 +651,19 @@ function renderDetailChart(profile) {
     const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     label.setAttribute('x', String(x));
     label.setAttribute('y', String(plotBottom + 20));
-    label.setAttribute('text-anchor', 'middle');
+    // Enkel modus har smal marg: første og siste merke kantjusteres.
+    label.setAttribute('text-anchor',
+      compact && x <= plotLeft + 1 ? 'start' : (compact && x >= plotRight - 22 ? 'end' : 'middle'));
     label.setAttribute('font-size', '11');
     label.setAttribute('fill', '#5f6368');
-    label.textContent = `${formatNo(d, d < 1 ? 1 : 0)} km`;
+    label.textContent = `${formatNo(d, Math.abs(d - Math.round(d)) < 0.001 ? 0 : 1)} km`;
     svg.appendChild(label);
   }
 
   // --- Tidsakse øverst, parallelt med distanseaksen. Tid og avstand henger
   // ikke lineært sammen (bakker koster tid), så hvert tidsmerke settes der
   // ruten faktisk når den tiden — ved å invertere den kumulative tiden. ---
-  if (cumSeconds) {
+  if (cumSeconds && !compact) {
     const axisY = 34;
     const totalMin = cumSeconds[cumSeconds.length - 1] / 60;
     const stepMin = [1, 2, 5, 10, 15, 20, 30, 60, 120, 180, 240].find(st => totalMin / st <= 8) || 240;
@@ -646,7 +712,6 @@ function renderDetailChart(profile) {
   svg.dataset.totalKm = String(totalKm);
   svg.dataset.min = String(min);
   svg.dataset.range = String(range);
-
 }
 
 function addDetailLabel(profile, point, name) {
@@ -731,9 +796,8 @@ function addDetailLabel(profile, point, name) {
   svg.appendChild(pin);
 }
 
-// Roterte etiketter vokser oppover fra grunnlinja — er toppunktet for nær
-// start eller slutt langs x-aksen, overlapper de to tekstene hverandre. I
-// så fall dropper vi ganske enkelt topp-etiketten (start/slutt vinner).
+// Er toppunktet for nær start eller slutt langs x-aksen, overlapper navnene
+// hverandre. I så fall dropper vi topp-etiketten (start/slutt vinner).
 function applyPlaceLabels(profile, names) {
   addDetailLabel(profile, profile[0], names.startName || 'Start');
   addDetailLabel(profile, profile[profile.length - 1], names.endName || 'Slutt');

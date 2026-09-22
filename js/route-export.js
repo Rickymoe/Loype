@@ -163,9 +163,87 @@ function loadSharedRouteFromUrl() {
   return true;
 }
 
+// Godtar både <trkpt> (spor) og <rtept> (rute) siden ulike verktøy
+// (Strava, Garmin, kartverket.no m.fl.) eksporterer det ene eller det andre.
+function parseGpxPoints(gpxText) {
+  const doc = new DOMParser().parseFromString(gpxText, 'application/xml');
+  if (doc.querySelector('parsererror')) throw new Error('Ugyldig GPX-fil.');
+
+  let els = Array.from(doc.querySelectorAll('trkpt'));
+  if (els.length === 0) els = Array.from(doc.querySelectorAll('rtept'));
+  if (els.length === 0) throw new Error('Fant ingen rutepunkter i GPX-filen.');
+
+  const points = els.map(el => {
+    const lat = parseFloat(el.getAttribute('lat'));
+    const lng = parseFloat(el.getAttribute('lon'));
+    const eleEl = el.querySelector('ele');
+    const elevation = eleEl ? parseFloat(eleEl.textContent) : undefined;
+    return { lat, lng, elevation };
+  }).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
+
+  if (points.length === 0) throw new Error('Fant ingen gyldige koordinater i GPX-filen.');
+  return points;
+}
+
+// Bruker høyde fra fila der den finnes (unngår unødvendige API-kall) og
+// henter bare inn de manglende punktene etterpå, samme mønster som
+// loadSharedRouteFromUrl.
+function loadRouteFromGpxPoints(points) {
+  routePoints = points.map(p => ({ lat: p.lat, lng: p.lng }));
+  routeElevations = points.map(p => (Number.isFinite(p.elevation) ? p.elevation : undefined));
+  undoStack = [];
+  document.getElementById('loype-mirror-checkbox').checked = false;
+
+  redrawRoutePolyline();
+  redrawRouteMarkers();
+  updateLoypeControls();
+  updateDistanceAndChart();
+
+  const bounds = new google.maps.LatLngBounds();
+  routePoints.forEach(p => bounds.extend(p));
+  map.fitBounds(bounds);
+
+  const missingIndexes = routeElevations
+    .map((e, i) => (e === undefined ? i : -1))
+    .filter(i => i !== -1);
+  if (missingIndexes.length === 0) return;
+
+  fetchRouteElevation(missingIndexes.map(i => routePoints[i]))
+    .then(elevations => {
+      missingIndexes.forEach((i, j) => { routeElevations[i] = elevations[j]; });
+      updateDistanceAndChart();
+    })
+    .catch(() => {
+      showLoypeError('Kunne ikke hente høydedata for deler av den opplastede ruten.');
+    });
+}
+
+function handleGpxFileUpload(event) {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const points = parseGpxPoints(reader.result);
+      loadRouteFromGpxPoints(points);
+      hideLoypeError();
+    } catch (err) {
+      showLoypeError(err.message || 'Kunne ikke lese GPX-filen.');
+    }
+  };
+  reader.onerror = () => showLoypeError('Kunne ikke lese GPX-filen.');
+  reader.readAsText(file);
+}
+
 function initRouteExport() {
   document.getElementById('loype-gpx-btn').addEventListener('click', downloadRouteGpx);
   document.getElementById('loype-share-btn').addEventListener('click', shareRoute);
+  document.getElementById('loype-gpx-upload-btn').addEventListener('click', () => {
+    document.getElementById('loype-gpx-file-input').click();
+  });
+  document.getElementById('loype-gpx-file-input').addEventListener('change', handleGpxFileUpload);
 }
 
 document.addEventListener('DOMContentLoaded', initRouteExport);

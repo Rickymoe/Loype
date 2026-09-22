@@ -483,21 +483,6 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
 
 .loype-btn-danger:hover:not(:disabled) { background: var(--color-error-bg); }
 
-/* Fast bredde i stedet for flex:1 — gir "Del rute" plass som et rent ikon
-   uten å stjele bredde fra GPX-knappene den nå deler rad med. */
-.loype-icon-only-btn {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 7px 10px;
-}
-
-.loype-icon-only-btn svg {
-  width: 16px;
-  height: 16px;
-}
-
 #loype-share-status {
   margin-top: 8px;
   margin-bottom: 8px;

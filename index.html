@@ -26,6 +26,14 @@
             <path d="M12 2V5M12 19V22M2 12H5M19 12H22" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" />
           </svg>
         </button>
+        <button id="loype-gpx-upload-btn" class="loype-icon-btn" aria-label="Last opp GPX" title="Last opp GPX">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M17 8l-5-5-5 5" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            <path d="M12 3v12" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </button>
+        <input type="file" id="loype-gpx-file-input" accept=".gpx" class="hidden" />
         <div id="loype-favorites-icons" class="loype-favorites-icons"></div>
       </div>
       <div class="loype-profile-box">
@@ -80,9 +88,7 @@
               <path d="M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
             </svg>
           </button>
-          <button id="loype-gpx-upload-btn" class="loype-btn">Last opp GPX</button>
           <button id="loype-gpx-btn" class="loype-btn" disabled>Last ned GPX</button>
-          <input type="file" id="loype-gpx-file-input" accept=".gpx" class="hidden" />
         </div>
         <div id="loype-share-status" class="hidden" aria-live="polite"></div>
       </div>

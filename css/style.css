@@ -707,6 +707,13 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   border-radius: 3px;
 }
 
+.loype-detail-no-elevation {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--color-text-soft);
+}
+
 .loype-detail-ai-row .loype-btn {
   flex: 0 0 auto;
 }

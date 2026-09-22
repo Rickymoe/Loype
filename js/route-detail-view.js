@@ -11,8 +11,12 @@ async function fetchPlaceName(lat, lng) {
   }
 }
 
-// Bygger en avstandsbasert høydeprofil (km langs ruten, ikke punktindeks),
-// inkludert returbenet hvis "Speil retur" er huket av.
+// Bygger en avstandsbasert profil (km langs ruten, ikke punktindeks),
+// inkludert returbenet hvis "Speil retur" er huket av. Tar med ALLE punkter
+// uansett om høyden er kjent ennå — punkter uten høyde ble tidligere
+// utelatt helt, noe som både kuttet distansen kunstig kort (haltet et
+// uinnlastet halepunkt) og gjorde at hele detaljvisningen nektet å åpne seg
+// når ingen høyder var kjent (se profileHasElevation for hva grafen bruker).
 function buildDistanceProfile() {
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
   const profile = [];
@@ -26,9 +30,7 @@ function buildDistanceProfile() {
       );
       cum += segKm;
     }
-    if (routeElevations[i] !== undefined) {
-      profile.push({ distKm: cum, elevation: routeElevations[i], lat: routePoints[i].lat, lng: routePoints[i].lng });
-    }
+    profile.push({ distKm: cum, elevation: routeElevations[i], lat: routePoints[i].lat, lng: routePoints[i].lng });
   }
 
   if (mirror && profile.length > 1) {
@@ -133,9 +135,32 @@ let detailModal = null;
 let currentProfile = null;
 let cachedPlaceNames = null;
 
+// Grafen (terrenget, høyderuleren, tidsaksen, stedsnavn-etikettene) trenger
+// en kjent høyde på hvert eneste punkt — delvise data ville gitt NaN midt i
+// tegningen. Resten av panelet (distanse, estimert tid/energi, vær, tørreste
+// vindu, væsketap, AI-spørring) er derimot uavhengig av høyde og skal vises
+// uansett.
+function profileHasElevation(profile) {
+  return profile.length > 0 && profile.every(p => p.elevation !== undefined);
+}
+
+function updateDetailElevationSection(profile) {
+  const hasElevation = profileHasElevation(profile);
+  // Både #loype-detail-legend og #loype-detail-chart har egne display-regler
+  // (id-selektor, evt. en senere .klasse-regel for legend) som slår
+  // .hidden i kaskaden — inline style er det som faktisk vinner over dem.
+  document.getElementById('loype-detail-legend').style.display = hasElevation ? '' : 'none';
+  document.getElementById('loype-detail-chart').style.display = hasElevation ? '' : 'none';
+  document.getElementById('loype-detail-no-elevation').classList.toggle('hidden', hasElevation);
+  if (hasElevation) {
+    renderDetailChart(profile);
+    loadPlaceLabels(profile);
+  }
+}
+
 function openRouteDetailView() {
+  if (routePoints.length < 2) return;
   const profile = buildDistanceProfile();
-  if (profile.length < 2) return;
   currentProfile = profile;
   cachedPlaceNames = null;
   lastFocusedBeforeModal = document.activeElement;
@@ -150,8 +175,7 @@ function openRouteDetailView() {
   refreshDetailWeather();
   refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
-  renderDetailChart(profile);
-  loadPlaceLabels(profile);
+  updateDetailElevationSection(profile);
 }
 
 const DETAIL_PACE_BUTTON_IDS = {
@@ -260,14 +284,16 @@ function syncDetailPaceButtons() {
 function refreshDetailView() {
   if (!currentProfile) return;
   renderDetailSummary(currentProfile);
-  renderDetailChart(currentProfile);
+  if (profileHasElevation(currentProfile)) {
+    renderDetailChart(currentProfile);
+    if (cachedPlaceNames) {
+      applyPlaceLabels(currentProfile, cachedPlaceNames);
+    } else {
+      loadPlaceLabels(currentProfile);
+    }
+  }
   refreshRainWindowIfApplicable();
   refreshHydrationIfApplicable();
-  if (cachedPlaceNames) {
-    applyPlaceLabels(currentProfile, cachedPlaceNames);
-  } else {
-    loadPlaceLabels(currentProfile);
-  }
 }
 
 // Ruteestimatets varighet avgjør hvor mange sammenhengende timer det
@@ -423,12 +449,13 @@ function buildDetailModalSkeleton() {
           </svg>
         </button>
       </div>
-      <div class="loype-detail-legend">
+      <div id="loype-detail-legend" class="loype-detail-legend">
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#43a047"></span>Nedover</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ffb300"></span>Flatt</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#ff7043"></span>Bratt</span>
         <span class="loype-legend-item"><span class="loype-legend-swatch" style="background:#e53935"></span>Svært bratt</span>
       </div>
+      <div id="loype-detail-no-elevation" class="loype-detail-no-elevation hidden">Høydedata er ikke tilgjengelig for denne ruten akkurat nå. Resten av oversikten er upåvirket.</div>
       <svg id="loype-detail-chart" viewBox="0 0 1100 420" preserveAspectRatio="xMidYMid meet" role="img"></svg>
     </div>
   `;
@@ -439,6 +466,7 @@ function buildDetailModalSkeleton() {
 
 function renderDetailSummary(profile) {
   const totalKm = profile[profile.length - 1].distKm;
+  const hasElevation = profileHasElevation(profile);
   const gain = profile.reduce((sum, p, i) => {
     if (i === 0) return 0;
     const diff = p.elevation - profile[i - 1].elevation;
@@ -464,8 +492,9 @@ function renderDetailSummary(profile) {
     energyText = ` · Energi: ${formatNo(kcal * 4.184)} kJ / ${formatNo(kcal)} kcal`;
   }
 
+  const gainText = hasElevation ? ` · ${formatNo(gain)} m stigning` : '';
   document.getElementById('loype-detail-summary').textContent =
-    `${formatNo(totalKm, 2)} km · ${formatNo(gain)} m stigning${timeText}${energyText}`;
+    `${formatNo(totalKm, 2)} km${gainText}${timeText}${energyText}`;
 }
 
 function isCompactChart(svg) {
@@ -478,6 +507,7 @@ function isCompactChart(svg) {
 let detailResizeHandler = null;
 function redrawDetailChart() {
   if (!currentProfile || !document.getElementById('loype-detail-chart')) return;
+  if (!profileHasElevation(currentProfile)) return;
   renderDetailChart(currentProfile);
   if (cachedPlaceNames) applyPlaceLabels(currentProfile, cachedPlaceNames);
 }

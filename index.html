@@ -57,10 +57,6 @@
         <button id="loype-undo-btn" class="loype-btn" disabled>Angre siste punkt</button>
         <button id="loype-clear-btn" class="loype-btn loype-btn-danger" disabled>Tøm rute</button>
       </div>
-      <div class="loype-controls">
-        <button id="loype-gpx-upload-btn" class="loype-btn">Last opp GPX</button>
-        <input type="file" id="loype-gpx-file-input" accept=".gpx" class="hidden" />
-      </div>
       <div id="loype-error-msg" class="hidden" aria-live="assertive"></div>
       <div id="loype-result" class="hidden" aria-live="polite">
         <div id="loype-distance-value"></div>
@@ -77,8 +73,16 @@
           Speil retur (frem og tilbake)
         </label>
         <div class="loype-controls">
-          <button id="loype-share-btn" class="loype-btn" disabled>Del rute</button>
+          <button id="loype-share-btn" class="loype-btn loype-icon-only-btn" disabled aria-label="Del rute" title="Del rute">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M15 3h6v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M10 14L21 3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+          </button>
+          <button id="loype-gpx-upload-btn" class="loype-btn">Last opp GPX</button>
           <button id="loype-gpx-btn" class="loype-btn" disabled>Last ned GPX</button>
+          <input type="file" id="loype-gpx-file-input" accept=".gpx" class="hidden" />
         </div>
         <div id="loype-share-status" class="hidden" aria-live="polite"></div>
       </div>

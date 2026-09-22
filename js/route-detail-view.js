@@ -644,7 +644,9 @@ function renderDetailChart(profile) {
       svg.appendChild(label);
     }
   } else {
-    // Enkel modus: bare toppen av skalaen, som stiplet linje med verdi.
+    // Enkel modus: topp og bunn av skalaen (ikke hvert trinn som i bred
+    // modus — får ikke plass), som stiplet linje med verdi. Grunnlinja er
+    // allerede tegnet over (samme linje som bunnverdien gjelder for).
     const topLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
     topLine.setAttribute('x1', String(plotLeft));
     topLine.setAttribute('y1', String(plotTop));
@@ -662,6 +664,25 @@ function renderDetailChart(profile) {
     topLabel.setAttribute('fill', '#5f6368');
     topLabel.textContent = `${formatNo(niceBounds.max)} m`;
     svg.appendChild(topLabel);
+
+    if (niceBounds.min !== niceBounds.max) {
+      // Bunnlinja ligger alltid inntil terrengflaten (fylt helt til
+      // plotBottom uansett fargesone), så etiketten trenger en hvit glorie
+      // for å holde seg lesbar uansett hvilken helningsfarge den lander på —
+      // toppen trenger det sjeldnere (mest tomrom der), men får samme
+      // behandling for konsekvens.
+      const bottomLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      bottomLabel.setAttribute('x', String(plotRight));
+      bottomLabel.setAttribute('y', String(plotBottom - 6));
+      bottomLabel.setAttribute('text-anchor', 'end');
+      bottomLabel.setAttribute('font-size', '11');
+      bottomLabel.setAttribute('fill', '#5f6368');
+      bottomLabel.setAttribute('stroke', '#fff');
+      bottomLabel.setAttribute('stroke-width', '3');
+      bottomLabel.setAttribute('paint-order', 'stroke');
+      bottomLabel.textContent = `${formatNo(niceBounds.min)} m`;
+      svg.appendChild(bottomLabel);
+    }
   }
 
   // --- Distansemerker under grunnlinja ---

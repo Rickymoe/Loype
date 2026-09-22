@@ -197,13 +197,31 @@ function chunkArray(arr, size) {
 // også kjent for å bli ustabil med store batcher i én omgang. Begge deles
 // derfor opp i mindre, sekvensielle biter i stedet for én stor forespørsel.
 const ELEVATION_CHUNK_SIZE = 30;
+const ELEVATION_FETCH_TIMEOUT_MS = 10000;
+
+// Uten dette kan en fetch() som verken lykkes eller feiler (observert mot
+// Kartverkets endepunkt — tilkoblingen bare henger) la løftet stå uavgjort
+// for alltid. Da kjører aldri .then() eller .catch() hos kalleren, og
+// høydegrafen blir stående tom uten at brukeren får noen feilmelding.
+async function fetchWithTimeout(url, options, timeoutMs = ELEVATION_FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (err) {
+    if (err.name === 'AbortError') throw new Error('tidsavbrudd');
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 async function fetchKartverketElevation(points) {
   const results = [];
   for (const chunk of chunkArray(points, ELEVATION_CHUNK_SIZE)) {
     const coords = JSON.stringify(chunk.map(p => [p.lng, p.lat]));
     const url = `${KARTVERKET_HOYDEDATA_URL}?punkter=${encodeURIComponent(coords)}&koordsys=4326`;
-    const resp = await fetch(url);
+    const resp = await fetchWithTimeout(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     results.push(...data.punkter.map(p => p.z));
@@ -214,7 +232,7 @@ async function fetchKartverketElevation(points) {
 async function fetchOpenElevation(points) {
   const results = [];
   for (const chunk of chunkArray(points, ELEVATION_CHUNK_SIZE)) {
-    const resp = await fetch('https://api.open-elevation.com/api/v1/lookup', {
+    const resp = await fetchWithTimeout('https://api.open-elevation.com/api/v1/lookup', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

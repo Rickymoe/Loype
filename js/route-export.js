@@ -140,8 +140,11 @@ function loadSharedRouteFromUrl() {
   routePoints = points.map(([lat, lng]) => ({ lat, lng }));
   routeElevations = routePoints.map(() => undefined);
   undoStack = [];
-  // Punktene kom fra en lenke, ikke fra en fil — ingen GPX-merke.
+  // Punktene kom fra en lenke, ikke fra en fil — ingen GPX-merke, og ingen
+  // klokketid å vise (lenken bærer bare koordinatene).
   routeSource = null;
+  routeStartTime = null;
+  routeEndTime = null;
   if (params.get('m') === '1') document.getElementById('loype-mirror-checkbox').checked = true;
 
   redrawRoutePolyline();
@@ -180,7 +183,12 @@ function parseGpxPoints(gpxText) {
     const lng = parseFloat(el.getAttribute('lon'));
     const eleEl = el.querySelector('ele');
     const elevation = eleEl ? parseFloat(eleEl.textContent) : undefined;
-    return { lat, lng, elevation };
+    // Klokketid fra fila. Ugyldig eller manglende <time> blir null i stedet
+    // for en Invalid Date som ville spredd seg til formateringen senere.
+    const timeEl = el.querySelector('time');
+    const lest = timeEl ? new Date(timeEl.textContent) : null;
+    const time = lest && Number.isFinite(lest.getTime()) ? lest : null;
+    return { lat, lng, elevation, time };
   }).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
   if (points.length === 0) throw new Error('Fant ingen gyldige koordinater i GPX-filen.');
@@ -196,6 +204,11 @@ function loadRouteFromGpxPoints(points) {
   undoStack = [];
   // Må settes før updateLoypeControls() under, som er det som tegner merket.
   routeSource = 'gpx';
+  // Første og siste punkt som har et tidsstempel. Enkelte verktøy skriver
+  // <time> bare på noen av punktene, så vi kan ikke bare lese [0] og [siste].
+  const tider = points.map(p => p.time).filter(Boolean);
+  routeStartTime = tider.length ? tider[0] : null;
+  routeEndTime = tider.length ? tider[tider.length - 1] : null;
   document.getElementById('loype-mirror-checkbox').checked = false;
 
   redrawRoutePolyline();

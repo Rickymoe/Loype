@@ -701,6 +701,16 @@ body.fra-gpx .loype-gpx-badge { display: inline-flex; }
   min-width: 0;
 }
 
+/* Faktalinja fra GPX-fila: når turen faktisk ble gjennomført. Ligger rett
+   under header-raden (der GPX-merket står) og over været, som er den
+   fremtidsrettede delen av panelet («Nå»-velgeren). */
+.loype-detail-tur {
+  font-size: var(--fs-sm);
+  color: var(--color-text-soft);
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+
 .loype-detail-weather {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);

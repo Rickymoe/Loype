@@ -5,8 +5,15 @@ let routePolyline = null;
 let routeMarkers = [];
 
 // Hvor ruten på kartet kommer fra: 'gpx' når den er lastet opp fra en fil,
-// ellers null. Se updateRouteSourceMark.
+// ellers null. Se isGpxRouteUntouched.
 let routeSource = null;
+
+// Når turen faktisk ble gjennomført, lest fra <time> i GPX-fila (første og
+// siste punkt som har et gyldig tidsstempel). Brukes av faktalinja i
+// detaljpanelet — se renderDetailRunFacts. Null når ruten ikke kom fra en
+// fil, eller når fila ikke har tidsstempler i det hele tatt.
+let routeStartTime = null;
+let routeEndTime = null;
 
 function onLoypeRouteClick(e) {
   addRoutePoint(e.latLng.lat(), e.latLng.lng());
@@ -142,6 +149,8 @@ function clearRoute() {
   routeElevations = [];
   undoStack = [];
   routeSource = null;
+  routeStartTime = null;
+  routeEndTime = null;
   redrawRoutePolyline();
   redrawRouteMarkers();
   updateLoypeControls();
@@ -157,22 +166,26 @@ function updateLoypeControls() {
   updateRouteSourceMark();
 }
 
-// Merket på den lille grafen og i detaljpanelet som sier at ruten kom fra en
-// opplastet GPX-fil og ikke fra klikk på kartet.
-//
-// Det skal falle bort så snart ruten ikke lenger er urørt, og «urørt» kan
-// leses rett ut av undoStack: den får bare punkter brukeren har satt selv
+// Om ruten er en opplastet GPX-fil som fortsatt er urørt. «Urørt» kan leses
+// rett ut av undoStack: den får bare punkter brukeren har satt selv
 // (addRoutePoint og høyreklikk-innsetting) og tømmes av hver vei som
 // erstatter ruten. «source er gpx og stakken er tom» betyr derfor nøyaktig
 // «lastet opp, ingen egne punkter siden». Setter brukeren inn et punkt og
-// angrer, kommer merket tilbake av seg selv — uten at noe må huske det.
+// angrer, er ruten urørt igjen av seg selv — uten at noe må huske det.
+// To ting bygger på dette: GPX-merket og faktalinja med tidspunktet turen
+// faktisk ble gjennomført (se renderDetailRunFacts). Selve regelen står her,
+// så de to ikke kan komme ut av synk.
+function isGpxRouteUntouched() {
+  return routeSource === 'gpx' && undoStack.length === 0;
+}
+
+// Merket på den lille grafen og i detaljpanelet som sier at ruten kom fra en
+// opplastet GPX-fil og ikke fra klikk på kartet.
+//
 // Klassen settes på <body> fordi detaljpanelet bygges på nytt hver gang det
 // åpnes; se .loype-gpx-badge i css/style.css.
 function updateRouteSourceMark() {
-  document.body.classList.toggle(
-    'fra-gpx',
-    routeSource === 'gpx' && undoStack.length === 0
-  );
+  document.body.classList.toggle('fra-gpx', isGpxRouteUntouched());
 }
 
 // Feilmeldinger (f.eks. avslått posisjonstilgang) forsvant tidligere aldri

@@ -130,7 +130,16 @@ function saveFavoriteWithIcon(icon) {
   const mode = paceMode;
 
   const favorites = loadFavorites();
-  favorites.push({ icon, points, elevations, mirror, weight, height, mode, savedAt: new Date().toISOString(), src: routeSource });
+  // startTime/endTime følger med på samme måte som src: en favoritt lagret
+  // fra en opplastet GPX husker når turen ble gjennomført, så faktalinja i
+  // detaljpanelet står der også neste gang ruten hentes fram.
+  favorites.push({
+    icon, points, elevations, mirror, weight, height, mode,
+    savedAt: new Date().toISOString(),
+    src: routeSource,
+    startTime: routeStartTime ? routeStartTime.toISOString() : null,
+    endTime: routeEndTime ? routeEndTime.toISOString() : null,
+  });
   saveFavoritesList(favorites);
   renderFavoritesIcons();
 }
@@ -148,6 +157,10 @@ function loadFavoriteRoute(fav) {
   // Favoritter lagret fra en opplastet GPX husker opphavet sitt. Eldre
   // favoritter har ikke feltet og får dermed ingen merke.
   routeSource = fav.src === 'gpx' ? 'gpx' : null;
+  // Klokketida følger ruten, ikke merket: en favoritt fra en GPX uten
+  // tidsstempler skal ikke arve tidene fra ruten som lå der før.
+  routeStartTime = fav.startTime ? new Date(fav.startTime) : null;
+  routeEndTime = fav.endTime ? new Date(fav.endTime) : null;
   document.getElementById('loype-mirror-checkbox').checked = !!fav.mirror;
 
   if (fav.weight || fav.height) {

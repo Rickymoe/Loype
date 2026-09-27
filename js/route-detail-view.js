@@ -175,6 +175,7 @@ function openRouteDetailView() {
   refreshDetailWeather();
   refreshRainWindowIfApplicable();
   renderDetailSummary(profile);
+  renderDetailRunFacts();
   updateDetailElevationSection(profile);
 }
 
@@ -207,6 +208,10 @@ function toIsoDateLocal(d) {
 
 function formatShortDate(isoDate) {
   return new Date(`${isoDate}T00:00:00`).toLocaleDateString('no-NO', { day: '2-digit', month: '2-digit' });
+}
+
+function formatLongDate(d) {
+  return d.toLocaleDateString('no-NO', { day: 'numeric', month: 'long' });
 }
 
 // Datoen brukeren planlegger å løpe/gå ruten — brukes til værmelding/sol-tid
@@ -447,6 +452,7 @@ function buildDetailModalSkeleton() {
           </div>
         </div>
       </div>
+      <div id="loype-detail-tur" class="loype-detail-tur hidden" aria-live="polite"></div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden" aria-live="polite"></div>
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden" aria-live="polite"></div>
       <div id="loype-detail-hydration" class="loype-detail-hydration hidden" aria-live="polite"></div>
@@ -505,6 +511,67 @@ function renderDetailSummary(profile) {
   const gainText = hasElevation ? ` · ${formatNo(gain)} m stigning` : '';
   document.getElementById('loype-detail-summary').textContent =
     `${formatNo(totalKm, 2)} km${gainText}${timeText}${energyText}`;
+}
+
+// Faktalinja om turen slik den faktisk ble gjennomført, lest fra <time> i
+// GPX-fila: «Løpt 20. september, kl. 09:20–10:07 · dagslys hele veien».
+//
+// Dette er noe annet enn «Nå»-velgeren over, som sier hvilken dag du
+// PLANLEGGER for. De to rører ikke hverandre: velgeren beholder sin
+// fremtidsrettede betydning, og vær/planlegging henger fortsatt på den.
+//
+// Linja vises bare når ruten fortsatt er urørt (samme regel som GPX-merket,
+// se isGpxRouteUntouched) og fila faktisk har tidsstempler — mange GPX-er
+// har dem ikke, og da er det ingenting å si om turen.
+function renderDetailRunFacts() {
+  const el = document.getElementById('loype-detail-tur');
+  if (!el || !currentProfile) return;
+
+  if (!isGpxRouteUntouched() || !routeStartTime || !routeEndTime) {
+    el.classList.add('hidden');
+    return;
+  }
+
+  // Tidsstemplene i fila er UTC, mens turen ble gått i brukerens egen sone —
+  // derfor formateres Date-objektet og ikke ISO-strengen skjæres opp. En tur
+  // etter kl. 22:00 UTC hører til neste lokale døgn.
+  const sammeDag = toIsoDateLocal(routeStartTime) === toIsoDateLocal(routeEndTime);
+  const grunnlinje = sammeDag
+    ? `Løpt ${formatLongDate(routeStartTime)}, kl. ${formatClock(routeStartTime)}–${formatClock(routeEndTime)}`
+    : `Løpt ${formatLongDate(routeStartTime)} kl. ${formatClock(routeStartTime)} – `
+      + `${formatLongDate(routeEndTime)} kl. ${formatClock(routeEndTime)}`;
+
+  el.textContent = grunnlinje;
+  el.classList.remove('hidden');
+
+  // Dagslyset krever soloppgang/solnedgang for DENNE datoen på dette stedet,
+  // så det kommer asynkront. Linja står ferdig med én gang; lyset legges på
+  // når svaret kommer.
+  const start = currentProfile[0];
+  fetchSunTimes(start.lat, start.lng, toIsoDateLocal(routeStartTime))
+    .then(sun => {
+      // Panelet kan ha vært lukket og åpnet igjen mens kallet var i lufta —
+      // da er elementet byttet ut og svaret gjelder en linje som er borte.
+      if (document.getElementById('loype-detail-tur') !== el) return;
+      const lys = daylightText(sun, routeStartTime, routeEndTime);
+      if (lys) el.textContent = `${grunnlinje} · ${lys}`;
+    })
+    .catch(() => {
+      // Sol-tidene er et pluss, ikke et krav — linja står fint uten dem.
+    });
+}
+
+// Sammenligner tidsstemplene fra fila med soloppgang/solnedgang for samme dag
+// og sted. MET gir null for begge ved midnattssol og polarnatt (og kan gi
+// bare den ene nær grensen) — da sier linja ingenting om lyset i stedet for å
+// påstå noe den ikke vet.
+function daylightText(sun, start, end) {
+  if (!sun) return '';
+  const deler = [];
+  if (sun.sunrise && start < sun.sunrise) deler.push('startet i mørke');
+  if (sun.sunset && end > sun.sunset) deler.push('sluttet i mørke');
+  if (deler.length) return deler.join(', ');
+  return sun.sunrise && sun.sunset ? 'dagslys hele veien' : '';
 }
 
 function isCompactChart(svg) {

@@ -130,7 +130,7 @@ function saveFavoriteWithIcon(icon) {
   const mode = paceMode;
 
   const favorites = loadFavorites();
-  favorites.push({ icon, points, elevations, mirror, weight, height, mode, savedAt: new Date().toISOString() });
+  favorites.push({ icon, points, elevations, mirror, weight, height, mode, savedAt: new Date().toISOString(), src: routeSource });
   saveFavoritesList(favorites);
   renderFavoritesIcons();
 }
@@ -145,6 +145,9 @@ function loadFavoriteRoute(fav) {
     ? fav.elevations.map(e => (e === null ? undefined : e))
     : routePoints.map(() => undefined);
   undoStack = [];
+  // Favoritter lagret fra en opplastet GPX husker opphavet sitt. Eldre
+  // favoritter har ikke feltet og får dermed ingen merke.
+  routeSource = fav.src === 'gpx' ? 'gpx' : null;
   document.getElementById('loype-mirror-checkbox').checked = !!fav.mirror;
 
   if (fav.weight || fav.height) {

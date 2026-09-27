@@ -424,7 +424,17 @@ function buildDetailModalSkeleton() {
     <div id="loype-detail-panel" role="dialog" aria-modal="true" aria-label="Rutedetaljer" tabindex="-1">
       <button id="loype-detail-close" aria-label="Lukk">&times;</button>
       <div class="loype-detail-header">
-        <div id="loype-detail-summary"></div>
+        <div class="loype-detail-summary-row">
+          <div id="loype-detail-summary"></div>
+          <span class="loype-gpx-badge loype-gpx-badge-detail">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M17 8l-5-5-5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M12 3v12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            Fra GPX-fil
+          </span>
+        </div>
         <div class="loype-detail-controls">
           <div class="loype-detail-when">
             <button type="button" id="loype-detail-when-btn" class="loype-pace-mode-btn loype-when-btn">Nå</button>

@@ -585,6 +585,46 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   pointer-events: none;
 }
 
+/* GPX-merket vises når ruten på kartet kom fra en opplastet fil og ikke er
+   endret med egne punkter etterpå (se updateRouteSourceMark i
+   route-recorder.js). Klassen settes på <body> og ikke på merket selv, fordi
+   detaljpanelet bygges på nytt hver gang det åpnes — da følger den riktige
+   tilstanden med dit av seg selv, uten at åpningen må synkronisere noe. */
+.loype-gpx-badge {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  color: var(--loype-accent);
+  font-size: var(--fs-2xs);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+body.fra-gpx .loype-gpx-badge { display: inline-flex; }
+
+.loype-gpx-badge svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+}
+
+/* Lille grafen: samme hjørne som forstørrelses-ikonet, ett hakk til venstre
+   for det. Egen bakgrunn (grafens mint-farge) så profillinja ikke skinner
+   gjennom merket om ruten skulle slutte på sitt høyeste punkt.
+   pointer-events:none slik at klikket går videre til grafen under og åpner
+   detaljvisningen — samme grep som forstørrelses-ikonet. */
+.loype-gpx-badge-chart {
+  position: absolute;
+  top: 6px;
+  right: 26px;
+  width: 16px;
+  height: 16px;
+  justify-content: center;
+  background: var(--color-mint);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
 #loype-detail-modal {
   position: fixed;
   inset: 0;
@@ -644,6 +684,21 @@ html, body { height: 100%; font-family: -apple-system, BlinkMacSystemFont, 'Sego
   font-size: var(--fs-base);
   font-weight: 600;
   color: var(--color-heading);
+  /* Flex-barn som må få krympe og bryte teksten selv i stedet for å dytte
+     GPX-merket og kontrollene ut av panelet på smale skjermer. */
+  min-width: 0;
+}
+
+/* Oppsummeringsteksten og GPX-merket hører sammen som rutenes identitet, og
+   må derfor ligge i samme flex-barn av headeren — headeren selv fordeler
+   barna med space-between, så et merke lagt direkte der ville blitt plassert
+   midt i mellom teksten og knappene. */
+.loype-detail-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
 }
 
 .loype-detail-weather {

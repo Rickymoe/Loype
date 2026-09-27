@@ -140,6 +140,8 @@ function loadSharedRouteFromUrl() {
   routePoints = points.map(([lat, lng]) => ({ lat, lng }));
   routeElevations = routePoints.map(() => undefined);
   undoStack = [];
+  // Punktene kom fra en lenke, ikke fra en fil — ingen GPX-merke.
+  routeSource = null;
   if (params.get('m') === '1') document.getElementById('loype-mirror-checkbox').checked = true;
 
   redrawRoutePolyline();
@@ -192,6 +194,8 @@ function loadRouteFromGpxPoints(points) {
   routePoints = points.map(p => ({ lat: p.lat, lng: p.lng }));
   routeElevations = points.map(p => (Number.isFinite(p.elevation) ? p.elevation : undefined));
   undoStack = [];
+  // Må settes før updateLoypeControls() under, som er det som tegner merket.
+  routeSource = 'gpx';
   document.getElementById('loype-mirror-checkbox').checked = false;
 
   redrawRoutePolyline();

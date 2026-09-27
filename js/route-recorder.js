@@ -4,6 +4,10 @@ let routePoints = [];
 let routePolyline = null;
 let routeMarkers = [];
 
+// Hvor ruten på kartet kommer fra: 'gpx' når den er lastet opp fra en fil,
+// ellers null. Se updateRouteSourceMark.
+let routeSource = null;
+
 function onLoypeRouteClick(e) {
   addRoutePoint(e.latLng.lat(), e.latLng.lng());
 }
@@ -137,6 +141,7 @@ function clearRoute() {
   routePoints = [];
   routeElevations = [];
   undoStack = [];
+  routeSource = null;
   redrawRoutePolyline();
   redrawRouteMarkers();
   updateLoypeControls();
@@ -149,6 +154,25 @@ function updateLoypeControls() {
   document.getElementById('loype-share-btn').disabled = routePoints.length < 2;
   document.getElementById('loype-gpx-btn').disabled = routePoints.length < 2;
   updateFavoriteAddButtonState();
+  updateRouteSourceMark();
+}
+
+// Merket på den lille grafen og i detaljpanelet som sier at ruten kom fra en
+// opplastet GPX-fil og ikke fra klikk på kartet.
+//
+// Det skal falle bort så snart ruten ikke lenger er urørt, og «urørt» kan
+// leses rett ut av undoStack: den får bare punkter brukeren har satt selv
+// (addRoutePoint og høyreklikk-innsetting) og tømmes av hver vei som
+// erstatter ruten. «source er gpx og stakken er tom» betyr derfor nøyaktig
+// «lastet opp, ingen egne punkter siden». Setter brukeren inn et punkt og
+// angrer, kommer merket tilbake av seg selv — uten at noe må huske det.
+// Klassen settes på <body> fordi detaljpanelet bygges på nytt hver gang det
+// åpnes; se .loype-gpx-badge i css/style.css.
+function updateRouteSourceMark() {
+  document.body.classList.toggle(
+    'fra-gpx',
+    routeSource === 'gpx' && undoStack.length === 0
+  );
 }
 
 // Feilmeldinger (f.eks. avslått posisjonstilgang) forsvant tidligere aldri

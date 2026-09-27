@@ -711,10 +711,12 @@ body.fra-gpx .loype-gpx-badge { display: inline-flex; }
   margin-bottom: 4px;
 }
 
-/* Puls og beregnet energi for den målte turen. Samme radstil som faktalinja
-   over, men den står under været i DOM-en — i faktamodus er været skjult, så
-   de to havner rett etter hverandre. */
-.loype-detail-puls {
+/* Puls med beregnet energi, og den målte flatfarten. Begge er måtte detaljer
+   om turen som hører til faktamodus, og begge bruker samme radstil: mindre og
+   svakere enn faktalinja og oppsummeringen over. Radene som ikke hører til
+   faktamodus (vær, tørreste vindu, væske) står lenger ned med egen stil. */
+.loype-detail-puls,
+.loype-detail-flatt {
   font-size: var(--fs-sm);
   color: var(--color-text-soft);
   margin-top: -4px;

@@ -696,6 +696,124 @@ function measuredRunKcal(weightKg) {
   return kcal;
 }
 
+// «Snitttid flatt terreng» målt fra fila: hvor fort turen faktisk gikk der
+// det var flatt. Ruten deles i vinduer på 250 m, og et vindu teller bare når
+// netto stigning gjennom hele vinduet er innenfor ±2 % — da er det terrenget,
+// og ikke bakkene, som har satt farten. Farten blir sum tid delt på sum
+// distanse over de vinduene som kvalifiserer.
+//
+// Netto stigning over vinduet, ikke stigning per delstrekning: en 250 m
+// bakke som går opp og ned igjen er flat terreng å løpe i, selv om hver
+// meter av den heller.
+//
+// Delstrekninger under 2 km/h holdes utenfor. Det er å stå stille — pause,
+// lyskryss, GPS-hull — og ikke gange; tok vi dem med, ville pausen gjort den
+// målte farten langsommere enn turen var. Delstrekninger over taket holdes
+// også utenfor, for et GPS-sprang på noen hundre meter ville gitt en pace
+// ingen kunne løpe. Taket er romsligere for sykkel, der 40 km/h er ekte fart.
+//
+// Returnerer null når for lite av ruten er flat nok. En pace målt over 300 m
+// sier ingenting, og feltet skal heller stå urørt enn å fylles med et tall
+// brukeren ikke kan stole på.
+const FLAT_PACE_WINDOW_METERS = 250;
+const FLAT_PACE_MAX_GRADE = 0.02;
+const FLAT_PACE_MIN_SPEED_KMH = 2;
+const FLAT_PACE_MAX_SPEED_KMH = 30;
+const FLAT_PACE_BIKE_MAX_SPEED_KMH = 70;
+const FLAT_PACE_MIN_DISTANCE_KM = 1;
+
+function measuredFlatPace() {
+  if (!routeTimes || routeTimes.length !== routePoints.length || routePoints.length < 2) return null;
+  if (!routeElevations.some(e => e !== undefined)) return null;
+
+  const maksKmh = routeActivity === 'cycling' ? FLAT_PACE_BIKE_MAX_SPEED_KMH : FLAT_PACE_MAX_SPEED_KMH;
+
+  let flatKm = 0;
+  let flatSeconds = 0;
+
+  // Vinduet som bygges nå: distanse, tid og høyden ved vinduets første og
+  // siste punkt.
+  let vindusKm = 0;
+  let vindusSek = 0;
+  let vindusStartHoyde = undefined;
+  let vindusSluttHoyde = undefined;
+
+  const lukkVindu = () => {
+    const langtNok = vindusKm * 1000 >= FLAT_PACE_WINDOW_METERS;
+    const harHoyde = Number.isFinite(vindusStartHoyde) && Number.isFinite(vindusSluttHoyde);
+    if (langtNok && harHoyde) {
+      const stigning = (vindusSluttHoyde - vindusStartHoyde) / (vindusKm * 1000);
+      if (Math.abs(stigning) <= FLAT_PACE_MAX_GRADE) {
+        flatKm += vindusKm;
+        flatSeconds += vindusSek;
+      }
+    }
+    vindusKm = 0;
+    vindusSek = 0;
+    vindusStartHoyde = undefined;
+    vindusSluttHoyde = undefined;
+  };
+
+  for (let i = 1; i < routePoints.length; i++) {
+    const sek = routeTimes[i] - routeTimes[i - 1];
+    if (!(sek > 0)) continue;
+    const a = routePoints[i - 1];
+    const b = routePoints[i];
+    const segKm = turf.distance(
+      turf.point([a.lng, a.lat]),
+      turf.point([b.lng, b.lat]),
+      { units: 'kilometers' }
+    );
+    if (!(segKm > 0)) continue;
+    const kmh = (segKm / sek) * 3600;
+    if (kmh < FLAT_PACE_MIN_SPEED_KMH || kmh > maksKmh) continue;
+
+    if (vindusKm === 0) vindusStartHoyde = routeElevations[i - 1];
+    vindusKm += segKm;
+    vindusSek += sek;
+    vindusSluttHoyde = routeElevations[i];
+    if (vindusKm * 1000 >= FLAT_PACE_WINDOW_METERS) lukkVindu();
+  }
+  lukkVindu();
+
+  if (flatKm < FLAT_PACE_MIN_DISTANCE_KM) return null;
+  return { secondsPerKm: Math.round(flatSeconds / flatKm), km: flatKm };
+}
+
+// Pace skrevet slik feltet vil ha den: «5:36». Samme format som brukeren
+// skriver selv, og som parsePaceToSecondsPerKm() leser tilbake — så det som
+// står i feltet, er nøyaktig det som lagres.
+function formatPaceInput(secondsPerKm) {
+  const sek = Math.round(secondsPerKm);
+  return `${Math.floor(sek / 60)}:${String(sek % 60).padStart(2, '0')}`;
+}
+
+// Fila beskriver en tur som er gått, og da vet vi også hvor fort den gikk på
+// flatt — som er nettopp det «Snitttid flatt terreng» spør om. Farten fylles
+// derfor inn automatisk og lagres som om brukeren hadde skrevet den selv.
+// Uten dette måtte hver bruker finne tallet sitt med stoppeklokke og kart.
+//
+// Aktiviteten i fila bestemmer hvilken av de tre fartsinnstillingene som
+// kalibreres. Siden panelet bare viser én av dem om gangen, bytter det til
+// filas aktivitet — ellers ville feltet brukeren ser stått urørt mens et
+// annet ble endret i det stille. Sier fila ingenting om aktivitet, gjelder
+// målingen den aktiviteten brukeren selv står i.
+//
+// Filer uten tidsstempler, uten høyde eller med for lite flat terreng lar
+// feltet stå urørt.
+function applyMeasuredFlatPace() {
+  const malt = measuredFlatPace();
+  if (!malt) return;
+  const input = document.getElementById('loype-pace-input');
+  if (!input) return;
+
+  const mode = FILE_ACTIVITY_TO_MODE[routeActivity];
+  if (mode && mode !== paceMode) setPaceMode(mode);
+
+  input.value = formatPaceInput(malt.secondsPerKm);
+  persistPaceValue();
+}
+
 // Fysikkbasert sykkelmodell (i stedet for ACSM, som er laget for
 // ergometersykling og ikke passer utendørs helning/vind). Konstant tråkkeffekt
 // antas i flatt/oppover; nedover trappes effekten lineært ned mot null
@@ -835,6 +953,13 @@ async function fetchAndStoreElevation(pt, index) {
 // farten naturlig er svært forskjellig mellom aktivitetene.
 const PACE_DEFAULTS = { run: '5:30', walk: '12:00', bike: '2:30' };
 const PACE_MODE_BUTTON_IDS = { run: 'loype-pace-run-btn', walk: 'loype-pace-walk-btn', bike: 'loype-pace-bike-btn' };
+
+// Filas aktivitetsnavn oversatt til de samme nøklene som bryteren i panelet
+// bruker. Fila skriver «running», bryteren heter «run» — oversettelsen brukes
+// både av AI-spørringen (fortidsverbet) og av den målte flatfarten, som
+// fylles inn i feltet for filas egen aktivitet.
+const FILE_ACTIVITY_TO_MODE = { running: 'run', walking: 'walk', cycling: 'bike' };
+
 let paceMode = 'run';
 
 function syncPaceModeButtons(mode) {

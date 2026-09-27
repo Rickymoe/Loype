@@ -269,10 +269,16 @@ function buildRouteTimes(points, start) {
   return tider;
 }
 
+// Telles opp for hver lasting. Høydene hentes asynkront, og telleren lar
+// svaret se om det fortsatt gjelder ruten som ligger i kartet — se .then
+// nederst i loadRouteFromGpxPoints.
+let lasteToken = 0;
+
 // Bruker høyde fra fila der den finnes (unngår unødvendige API-kall) og
 // henter bare inn de manglende punktene etterpå, samme mønster som
 // loadSharedRouteFromUrl.
 function loadRouteFromGpxPoints(points) {
+  const token = ++lasteToken;
   routePoints = points.map(p => ({ lat: p.lat, lng: p.lng }));
   routeElevations = points.map(p => (Number.isFinite(p.elevation) ? p.elevation : undefined));
   undoStack = [];
@@ -294,6 +300,11 @@ function loadRouteFromGpxPoints(points) {
 
   document.getElementById('loype-mirror-checkbox').checked = false;
 
+  // Fila kan si hvor fort turen gikk der det var flatt — se
+  // applyMeasuredFlatPace(). Kalles før updateDistanceAndChart() under, som
+  // regner estimatene med den farten feltet nå står på.
+  applyMeasuredFlatPace();
+
   redrawRoutePolyline();
   redrawRouteMarkers();
   updateLoypeControls();
@@ -310,7 +321,14 @@ function loadRouteFromGpxPoints(points) {
 
   fetchRouteElevation(missingIndexes.map(i => routePoints[i]))
     .then(elevations => {
+      // Høydene kommer asynkront, og innen de er her kan brukeren ha lastet
+      // en annen fil. Da hører svaret til en rute som ikke finnes lenger, og
+      // både høydene og den målte flatfarten ville havnet på feil tur.
+      if (token !== lasteToken) return;
       missingIndexes.forEach((i, j) => { routeElevations[i] = elevations[j]; });
+      // Høydene kom først nå, så flatfarten kunne ikke måles da ruten ble
+      // lastet. Prøv på nytt med hele høydeprofilen på plass.
+      applyMeasuredFlatPace();
       updateDistanceAndChart();
     })
     .catch(() => {

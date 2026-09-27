@@ -181,6 +181,7 @@ function openRouteDetailView() {
     document.querySelector('.loype-detail-controls').remove();
     renderMeasuredSummary(profile);
     renderMeasuredPulse();
+    renderMeasuredFlatPace();
   } else {
     initDetailPaceButtons();
     initDetailWhenButton();
@@ -345,15 +346,11 @@ const AI_ACTIVITY_PAST = {
   bike: 'Jeg syklet en tur',
 };
 
-// Filas aktivitetsnavn oversatt til de samme nøklene som bryteren i panelet
-// bruker. Fila skriver «running», bryteren heter «run» — uten denne oversettelsen
-// ville verbet i spørringen blitt feil for en målt tur.
-const FILE_ACTIVITY_TO_MODE = { running: 'run', walking: 'walk', cycling: 'bike' };
-
 function buildAiQuery() {
   const summary = document.getElementById('loype-detail-summary')?.textContent || '';
   const turEl = document.getElementById('loype-detail-tur');
   const pulsEl = document.getElementById('loype-detail-puls');
+  const flattEl = document.getElementById('loype-detail-flatt');
   const weatherEl = document.getElementById('loype-detail-weather');
   const rainEl = document.getElementById('loype-detail-rain-window');
   const hydrationEl = document.getElementById('loype-detail-hydration');
@@ -361,6 +358,7 @@ function buildAiQuery() {
   const synlig = el => (el && !el.classList.contains('hidden') ? el.textContent : '');
   const tur = synlig(turEl);
   const puls = synlig(pulsEl);
+  const flatt = synlig(flattEl);
   const weather = synlig(weatherEl);
   const rain = synlig(rainEl);
   const hydration = synlig(hydrationEl);
@@ -375,6 +373,7 @@ function buildAiQuery() {
   const lines = [`${activity}: ${summary}.`];
   if (tur) lines.push(`${tur}.`);
   if (puls) lines.push(`${puls}.`);
+  if (flatt) lines.push(`${flatt}.`);
   if (weather) lines.push(`Værmelding: ${weather}.`);
   if (rain) lines.push(`${rain}.`);
   if (hydration) lines.push(`${hydration}.`);
@@ -497,6 +496,7 @@ function buildDetailModalSkeleton() {
       </div>
       <div id="loype-detail-tur" class="loype-detail-tur hidden" aria-live="polite"></div>
       <div id="loype-detail-puls" class="loype-detail-puls hidden" aria-live="polite"></div>
+      <div id="loype-detail-flatt" class="loype-detail-flatt hidden" aria-live="polite"></div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden" aria-live="polite"></div>
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden" aria-live="polite"></div>
       <div id="loype-detail-hydration" class="loype-detail-hydration hidden" aria-live="polite"></div>
@@ -598,6 +598,26 @@ function renderMeasuredPulse() {
     return;
   }
   el.textContent = deler.join(' · ');
+  el.classList.remove('hidden');
+}
+
+// Flatfarten som ble målt fra fila og fylt inn i «Snitttid flatt terreng»,
+// vist som en målt verdi. Den står her fordi feltet er i sidebaren, og en
+// automatisk endring av et felt brukeren ikke ser, er en endring brukeren
+// ikke kan vurdere. Distansen den er målt over står ved siden av: et snitt
+// over 1,2 km og et over 5 km er ikke like mye verdt, og med distansen kan
+// tallet etterprøves mot turen.
+function renderMeasuredFlatPace() {
+  const el = document.getElementById('loype-detail-flatt');
+  if (!el) return;
+
+  const malt = measuredFlatPace();
+  if (!malt) {
+    el.classList.add('hidden');
+    return;
+  }
+  el.textContent = `📏 Flatt terreng: ${formatPaceInput(malt.secondsPerKm)} min/km`
+    + ` (målt over ${formatNo(malt.km, 1)} km av turen)`;
   el.classList.remove('hidden');
 }
 

@@ -15,6 +15,22 @@ let routeSource = null;
 let routeStartTime = null;
 let routeEndTime = null;
 
+// Klokketid per punkt, i sekunder fra routeStartTime, parallelt med
+// routePoints. Tegner den ekte tidsaksen i detaljvisningen. Null for ruter
+// uten tidsstempler.
+let routeTimes = null;
+
+// Puls fra fila. Snittet over alle målingene og den høyeste — begge er
+// målinger, ikke overslag. Null når fila ikke har puls.
+let routeHrAvg = null;
+let routeHrMax = null;
+
+// Aktiviteten fila selv oppgir (<type> i GPX-en: running, walking, cycling),
+// satt av parseGpxPoints. Styrer hvilke ACSM-koeffisienter det beregnede
+// energiforbruket bruker — fila vet bedre enn en knapp i panelet hva slags
+// tur den inneholder.
+let routeActivity = null;
+
 function onLoypeRouteClick(e) {
   addRoutePoint(e.latLng.lat(), e.latLng.lng());
 }
@@ -151,6 +167,10 @@ function clearRoute() {
   routeSource = null;
   routeStartTime = null;
   routeEndTime = null;
+  routeTimes = null;
+  routeHrAvg = null;
+  routeHrMax = null;
+  routeActivity = null;
   redrawRoutePolyline();
   redrawRouteMarkers();
   updateLoypeControls();
@@ -179,6 +199,21 @@ function isGpxRouteUntouched() {
   return routeSource === 'gpx' && undoStack.length === 0;
 }
 
+// Om ruten kommer fra en fil som inneholder en faktisk gjennomført tur, med
+// tidsstempler å vise. Da beskriver appen turen i stedet for å planlegge den:
+// panelet og sidebaren viser målte tall, og været, den beste luka og
+// væsketapet skjules — de er alle sammen spørsmål om en tur som ennå ikke
+// har skjedd. Se openRouteDetailView.
+function hasRunFacts() {
+  return isGpxRouteUntouched() && !!(routeStartTime && routeEndTime);
+}
+
+// Turens lengde i sekunder, målt fra fila. Null når turen ikke er målt.
+function measuredDurationSeconds() {
+  if (!routeStartTime || !routeEndTime) return null;
+  return Math.round((routeEndTime - routeStartTime) / 1000);
+}
+
 // Merket på den lille grafen og i detaljpanelet som sier at ruten kom fra en
 // opplastet GPX-fil og ikke fra klikk på kartet.
 //
@@ -186,6 +221,23 @@ function isGpxRouteUntouched() {
 // åpnes; se .loype-gpx-badge i css/style.css.
 function updateRouteSourceMark() {
   document.body.classList.toggle('fra-gpx', isGpxRouteUntouched());
+
+  // «Speil retur» er en plan for en retur som ikke har skjedd, og den passer
+  // ikke sammen med tallene fra en gjennomført tur: panelet ville sagt
+  // 16,5 km mens turen var 8,25. Avkrysningen sperres derfor så lenge fila
+  // beskriver en målt tur. Filer uten tidsstempler er upåvirket.
+  const speil = document.getElementById('loype-mirror-checkbox');
+  if (speil) {
+    const sperret = hasRunFacts();
+    speil.disabled = sperret;
+    if (sperret) speil.checked = false;
+    // En sperret avkrysning uten forklaring ser ut som en feil, så tittelen
+    // sier hvorfor. Den henger på label-elementet, som er det brukeren peker
+    // på, og forsvinner sammen med sperren.
+    speil.parentElement.title = sperret
+      ? 'Fila beskriver en gjennomført tur — retur er en plan, og passer ikke sammen med målte tall'
+      : '';
+  }
 }
 
 // Feilmeldinger (f.eks. avslått posisjonstilgang) forsvant tidligere aldri
@@ -478,6 +530,20 @@ function formatDuration(totalSeconds) {
   return hours > 0 ? `${hours}t ${minutes}min` : `${minutes} min`;
 }
 
+// Målt tid, med sekunder. formatDuration runder til hele minutter, som er
+// riktig for et overslag («47 min») men feil for en stoppeklokke: turen varte
+// 47:07, og et panel som sier «47 min» om en målt tid påstår mer presisjon
+// enn det har. Over timen faller sekundene bort igjen — «2t 14min» er da den
+// lesbare formen.
+function formatStopwatch(totalSeconds) {
+  const seconds = Math.round(totalSeconds);
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}t ${minutes}min`;
+  const rest = String(seconds % 60).padStart(2, '0');
+  return `${minutes}:${rest}`;
+}
+
 // Grad-avhengig tidsstraff per delstrekning. Ved ~10% stigning gir dette en
 // faktor på ca. 2x (stemmer grovt med Naismith's rule for turgåing), og
 // eskalerer brattere for virkelig steile partier (>20%) i tråd med at
@@ -511,6 +577,17 @@ function segmentTimeSeconds(paceSecPerKm, reverseGrade) {
 
 function updateEstimatedTime() {
   const timeEl = document.getElementById('loype-time-value');
+
+  // Kommer ruten fra en fil med tidsstempler, står den målte tiden her i
+  // stedet for estimatet. Panelet viser de samme tallene, og skjermen skal
+  // ikke oppgi to ulike tider for samme tur.
+  const malt = measuredDurationSeconds();
+  if (hasRunFacts() && malt !== null) {
+    timeEl.textContent = `Målt tid: ${formatStopwatch(malt)}`;
+    timeEl.classList.remove('hidden');
+    return;
+  }
+
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const weightKg = parseFloat(loadProfile().weight);
   // Sykkelmodellen trenger vekt (inngår i massen); løp/gå trenger den ikke
@@ -558,12 +635,63 @@ function segmentEnergyKcal(paceSecPerKm, weightKg, isRunning, reverseGrade) {
       grade = Math.max(-0.4, Math.min(0.4, dz / (segKm * 1000)));
     }
 
-    const vo2 = isRunning
-      ? 0.2 * speedMetersPerMin + 0.9 * speedMetersPerMin * grade + 3.5
-      : 0.1 * speedMetersPerMin + 1.8 * speedMetersPerMin * grade + 3.5;
-
     const minutes = (segKm * 1000) / speedMetersPerMin;
-    kcal += (vo2 * weightKg / 1000) * 5 * minutes;
+    kcal += acsmKcalPerMin(speedMetersPerMin, grade, weightKg, isRunning) * minutes;
+  }
+  return kcal;
+}
+
+// ACSM-ligningen på ett sted: oksygenopptak (VO2, ml/kg/min) fra fart og
+// stigning, gjort om til kcal per minutt. Løpe- og gå-koeffisientene er ulike
+// — gå-koeffisienten for stigning (1,8) er dobbelt av løpe-koeffisienten
+// (0,9), så å gå oppover koster langt mer enn å løpe samme bakke.
+function acsmKcalPerMin(speedMetersPerMin, grade, weightKg, isRunning) {
+  const vo2 = isRunning
+    ? 0.2 * speedMetersPerMin + 0.9 * speedMetersPerMin * grade + 3.5
+    : 0.1 * speedMetersPerMin + 1.8 * speedMetersPerMin * grade + 3.5;
+  return (vo2 * weightKg / 1000) * 5;
+}
+
+// Energiforbruket for turen slik den faktisk ble gått: samme ACSM-ligning,
+// men med de målte minuttene per delstrekning i stedet for en antatt fart.
+// Farten blir da en følge av tid og distanse fra fila, og tallet trenger
+// verken alder eller kjønn — i motsetning til pulsbaserte formler (Keytel),
+// som skiller rundt 50 % mellom kvinner og menn ved samme puls og derfor er
+// ubrukelige uten et kjønnsfelt vi ikke har.
+//
+// Aktiviteten avgjør koeffisientene: gå-koeffisientene for stigning er mer
+// enn dobbelt så bratte som løpe-koeffisientene, så det er stor forskjell på
+// å gjette. Sier fila ingenting, behandles turen som en løpetur.
+//
+// Sykling gir null: ACSM for sykling regner på effekt i watt, og det har
+// ikke GPX-fila.
+function measuredRunKcal(weightKg) {
+  if (!weightKg || !routeTimes || routePoints.length < 2) return null;
+  if (routeActivity === 'cycling') return null;
+  const isRunning = routeActivity !== 'walking';
+
+  let kcal = 0;
+  for (let i = 1; i < routePoints.length; i++) {
+    const minutes = (routeTimes[i] - routeTimes[i - 1]) / 60;
+    if (!(minutes > 0)) continue;
+    const a = routePoints[i - 1];
+    const b = routePoints[i];
+    const segKm = turf.distance(
+      turf.point([a.lng, a.lat]),
+      turf.point([b.lng, b.lat]),
+      { units: 'kilometers' }
+    );
+    if (segKm === 0) continue;
+
+    let grade = 0;
+    const ea = routeElevations[i - 1];
+    const eb = routeElevations[i];
+    if (ea !== undefined && eb !== undefined) {
+      grade = Math.max(-0.4, Math.min(0.4, (eb - ea) / (segKm * 1000)));
+    }
+
+    const speedMetersPerMin = (segKm * 1000) / minutes;
+    kcal += acsmKcalPerMin(speedMetersPerMin, grade, weightKg, isRunning) * minutes;
   }
   return kcal;
 }
@@ -656,6 +784,21 @@ function routeSegmentKcal(paceSecPerKm, weightKg, reverseGrade) {
 function updateEstimatedEnergy() {
   const energyEl = document.getElementById('loype-energy-value');
   const weightKg = parseFloat(loadProfile().weight);
+
+  // Faktamodus: samme beregning som panelet (se measuredRunKcal), merket som
+  // beregnet fordi fila ikke inneholder noen energimåling — bare tid, puls og
+  // stigning å regne fra.
+  if (hasRunFacts()) {
+    const maltKcal = measuredRunKcal(weightKg);
+    if (!maltKcal) {
+      energyEl.classList.add('hidden');
+      return;
+    }
+    energyEl.textContent = `Energi: ${formatNo(maltKcal * 4.184)} kJ / ${formatNo(maltKcal)} kcal (beregnet)`;
+    energyEl.classList.remove('hidden');
+    return;
+  }
+
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   if (!weightKg || !paceSecPerKm || routePoints.length < 2) {
     energyEl.classList.add('hidden');

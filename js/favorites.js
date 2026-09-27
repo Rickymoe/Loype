@@ -161,6 +161,14 @@ function loadFavoriteRoute(fav) {
   // tidsstempler skal ikke arve tidene fra ruten som lå der før.
   routeStartTime = fav.startTime ? new Date(fav.startTime) : null;
   routeEndTime = fav.endTime ? new Date(fav.endTime) : null;
+  // Tiden per punkt og pulsen lagres ikke i favoritten — de er tusenvis av
+  // tall og ville gjort hver favoritt mange ganger større i localStorage.
+  // Uten dem faller tidsaksen i grafen tilbake til det estimerte, og
+  // pulskortet skjules; datoen, lengden og den målte tiden står fortsatt.
+  routeTimes = null;
+  routeHrAvg = null;
+  routeHrMax = null;
+  routeActivity = null;
   document.getElementById('loype-mirror-checkbox').checked = !!fav.mirror;
 
   if (fav.weight || fav.height) {

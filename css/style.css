@@ -711,6 +711,16 @@ body.fra-gpx .loype-gpx-badge { display: inline-flex; }
   margin-bottom: 4px;
 }
 
+/* Puls og beregnet energi for den målte turen. Samme radstil som faktalinja
+   over, men den står under været i DOM-en — i faktamodus er været skjult, så
+   de to havner rett etter hverandre. */
+.loype-detail-puls {
+  font-size: var(--fs-sm);
+  color: var(--color-text-soft);
+  margin-top: -4px;
+  margin-bottom: 4px;
+}
+
 .loype-detail-weather {
   font-size: var(--fs-sm);
   color: var(--color-text-muted);

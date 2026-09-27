@@ -166,15 +166,28 @@ function openRouteDetailView() {
   lastFocusedBeforeModal = document.activeElement;
 
   buildDetailModalSkeleton();
-  initDetailPaceButtons();
-  initDetailWhenButton();
   document.getElementById('loype-detail-ask-ai-btn').addEventListener('click', askAiAboutRoute);
   document.getElementById('loype-detail-copy-ai-btn').addEventListener('click', copyAiQuery);
   setupModalKeyboardHandling();
   setupDetailResizeHandling();
-  refreshDetailWeather();
-  refreshRainWindowIfApplicable();
-  renderDetailSummary(profile);
+
+  if (hasRunFacts()) {
+    // Målt tur: panelet beskriver turen som ble gått, ikke en tur som skal
+    // gås. Da forsvinner hele planleggingshalvdelen — værvarselet, det
+    // tørreste vinduet og væsketapet er alle spørsmål om en fremtid, og
+    // «Nå»-velgeren og Gå/Løp/Sykkel-bryteren styrer et estimat vi ikke
+    // lenger viser. Raden fjernes fra DOM-en i stedet for å skjules, så
+    // verken fokusfellen eller Tab-rekkefølgen treffer døde knapper.
+    document.querySelector('.loype-detail-controls').remove();
+    renderMeasuredSummary(profile);
+    renderMeasuredPulse();
+  } else {
+    initDetailPaceButtons();
+    initDetailWhenButton();
+    refreshDetailWeather();
+    refreshRainWindowIfApplicable();
+    renderDetailSummary(profile);
+  }
   renderDetailRunFacts();
   updateDetailElevationSection(profile);
 }
@@ -288,7 +301,8 @@ function syncDetailPaceButtons() {
 
 function refreshDetailView() {
   if (!currentProfile) return;
-  renderDetailSummary(currentProfile);
+  if (hasRunFacts()) renderMeasuredSummary(currentProfile);
+  else renderDetailSummary(currentProfile);
   if (profileHasElevation(currentProfile)) {
     renderDetailChart(currentProfile);
     if (cachedPlaceNames) {
@@ -318,20 +332,49 @@ function refreshRainWindowIfApplicable() {
 }
 
 // Gjenbruker teksten som allerede står i detaljvisningen (oppsummering,
-// vær, tørreste vindu) i stedet for å regne alt ut på nytt — unngår at
-// spørringen kommer ut av synk med det brukeren faktisk ser.
+// faktalinja, puls, vær, tørreste vindu) i stedet for å regne alt ut på nytt
+// — unngår at spørringen kommer ut av synk med det brukeren faktisk ser.
+const AI_ACTIVITY_PRESENT = {
+  run: 'Jeg skal løpe en tur',
+  walk: 'Jeg skal gå en tur',
+  bike: 'Jeg skal sykle en tur',
+};
+const AI_ACTIVITY_PAST = {
+  run: 'Jeg løp en tur',
+  walk: 'Jeg gikk en tur',
+  bike: 'Jeg syklet en tur',
+};
+
+// Filas aktivitetsnavn oversatt til de samme nøklene som bryteren i panelet
+// bruker. Fila skriver «running», bryteren heter «run» — uten denne oversettelsen
+// ville verbet i spørringen blitt feil for en målt tur.
+const FILE_ACTIVITY_TO_MODE = { running: 'run', walking: 'walk', cycling: 'bike' };
+
 function buildAiQuery() {
   const summary = document.getElementById('loype-detail-summary')?.textContent || '';
+  const turEl = document.getElementById('loype-detail-tur');
+  const pulsEl = document.getElementById('loype-detail-puls');
   const weatherEl = document.getElementById('loype-detail-weather');
   const rainEl = document.getElementById('loype-detail-rain-window');
   const hydrationEl = document.getElementById('loype-detail-hydration');
 
-  const weather = weatherEl && !weatherEl.classList.contains('hidden') ? weatherEl.textContent : '';
-  const rain = rainEl && !rainEl.classList.contains('hidden') ? rainEl.textContent : '';
-  const hydration = hydrationEl && !hydrationEl.classList.contains('hidden') ? hydrationEl.textContent : '';
+  const synlig = el => (el && !el.classList.contains('hidden') ? el.textContent : '');
+  const tur = synlig(turEl);
+  const puls = synlig(pulsEl);
+  const weather = synlig(weatherEl);
+  const rain = synlig(rainEl);
+  const hydration = synlig(hydrationEl);
 
-  const activity = { run: 'Jeg skal løpe en tur', walk: 'Jeg skal gå en tur', bike: 'Jeg skal sykle en tur' }[paceMode];
+  // Verbet står i fortid når turen faktisk er gått, og i framtid ellers. På
+  // en målt tur vet fila selv hva slags tur det var, og det er sikrere enn
+  // bryteren i sidebaren — den vises ikke i panelet i faktamodus.
+  const malt = hasRunFacts();
+  const mode = (malt && FILE_ACTIVITY_TO_MODE[routeActivity]) || paceMode;
+  const activity = (malt ? AI_ACTIVITY_PAST : AI_ACTIVITY_PRESENT)[mode];
+
   const lines = [`${activity}: ${summary}.`];
+  if (tur) lines.push(`${tur}.`);
+  if (puls) lines.push(`${puls}.`);
   if (weather) lines.push(`Værmelding: ${weather}.`);
   if (rain) lines.push(`${rain}.`);
   if (hydration) lines.push(`${hydration}.`);
@@ -453,6 +496,7 @@ function buildDetailModalSkeleton() {
         </div>
       </div>
       <div id="loype-detail-tur" class="loype-detail-tur hidden" aria-live="polite"></div>
+      <div id="loype-detail-puls" class="loype-detail-puls hidden" aria-live="polite"></div>
       <div id="loype-detail-weather" class="loype-detail-weather hidden" aria-live="polite"></div>
       <div id="loype-detail-rain-window" class="loype-detail-rain-window hidden" aria-live="polite"></div>
       <div id="loype-detail-hydration" class="loype-detail-hydration hidden" aria-live="polite"></div>
@@ -480,14 +524,20 @@ function buildDetailModalSkeleton() {
   document.getElementById('loype-detail-backdrop').addEventListener('click', closeRouteDetailView);
 }
 
-function renderDetailSummary(profile) {
-  const totalKm = profile[profile.length - 1].distKm;
-  const hasElevation = profileHasElevation(profile);
-  const gain = profile.reduce((sum, p, i) => {
+// Samlet stigning i profilen. Deler den mellom den estimerte og den målte
+// oppsummeringen, som ellers ikke har noe til felles.
+function totalGain(profile) {
+  return profile.reduce((sum, p, i) => {
     if (i === 0) return 0;
     const diff = p.elevation - profile[i - 1].elevation;
     return sum + (diff > 0 ? diff : 0);
   }, 0);
+}
+
+function renderDetailSummary(profile) {
+  const totalKm = profile[profile.length - 1].distKm;
+  const hasElevation = profileHasElevation(profile);
+  const gain = totalGain(profile);
 
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const mirror = document.getElementById('loype-mirror-checkbox').checked;
@@ -511,6 +561,44 @@ function renderDetailSummary(profile) {
   const gainText = hasElevation ? ` · ${formatNo(gain)} m stigning` : '';
   document.getElementById('loype-detail-summary').textContent =
     `${formatNo(totalKm, 2)} km${gainText}${timeText}${energyText}`;
+}
+
+// Oppsummeringen for en målt tur: distanse, stigning og tid er alle målt.
+// Ingen estimert tid og ingen «høydejustert»-forbehold hører hjemme her — de
+// hører til en rute som ikke er gått ennå. Tiden står uten etikett, som på en
+// stoppeklokke, og med sekunder (47:07), siden den faktisk er målt så nøyaktig.
+function renderMeasuredSummary(profile) {
+  const totalKm = profile[profile.length - 1].distKm;
+  const gainText = profileHasElevation(profile) ? ` · ${formatNo(totalGain(profile))} m stigning` : '';
+  const malt = measuredDurationSeconds();
+  const tidText = malt !== null ? ` · ${formatStopwatch(malt)}` : '';
+  document.getElementById('loype-detail-summary').textContent =
+    `${formatNo(totalKm, 2)} km${gainText}${tidText}`;
+}
+
+// Puls og energi for den målte turen. Pulsen er lest rett fra fila og er en
+// måling; energien er regnet ut fra tid, distanse og stigning (se
+// measuredRunKcal) og merkes som beregnet, fordi fila ikke inneholder noen
+// energimåling å vise. Mangler begge, skjules hele raden.
+function renderMeasuredPulse() {
+  const el = document.getElementById('loype-detail-puls');
+  if (!el) return;
+
+  const deler = [];
+  if (routeHrAvg !== null) {
+    deler.push(`💓 Puls: ${formatNo(routeHrAvg)} snitt · ${formatNo(routeHrMax)} maks`);
+  }
+  const kcal = measuredRunKcal(parseFloat(loadProfile().weight));
+  if (kcal) {
+    deler.push(`Energi: ${formatNo(kcal * 4.184)} kJ / ${formatNo(kcal)} kcal (beregnet)`);
+  }
+
+  if (deler.length === 0) {
+    el.classList.add('hidden');
+    return;
+  }
+  el.textContent = deler.join(' · ');
+  el.classList.remove('hidden');
 }
 
 // Faktalinja om turen slik den faktisk ble gjennomført, lest fra <time> i
@@ -622,8 +710,15 @@ function renderDetailChart(profile) {
   const paceSecPerKm = parsePaceToSecondsPerKm(document.getElementById('loype-pace-input').value);
   const weightKg = parseFloat(loadProfile().weight);
 
+  // Tidsaksen bygges fra filas egne tidsstempler når turen er målt, og fra
+  // fartsestimatet ellers. Begge er «sekunder fra start per punkt», så
+  // inverteringen lenger ned er den samme — bare merkelappen skiller:
+  // «09:30» på en målt tur, «10 min» på en planlagt rute.
+  const maltTid = hasRunFacts() && routeTimes && routeTimes.length === profile.length;
   let cumSeconds = null;
-  if (paceMode === 'bike') {
+  if (maltTid) {
+    cumSeconds = routeTimes;
+  } else if (paceMode === 'bike') {
     if (paceSecPerKm && weightKg) {
       cumSeconds = buildCumulativeBikeProfile(profile, paceSecPerKm, weightKg);
     }
@@ -795,7 +890,10 @@ function renderDetailChart(profile) {
     const axisY = 34;
     const totalMin = cumSeconds[cumSeconds.length - 1] / 60;
     const stepMin = [1, 2, 5, 10, 15, 20, 30, 60, 120, 180, 240].find(st => totalMin / st <= 8) || 240;
-    const timeLabel = m => (m < 60 ? `${m} min` : `${Math.floor(m / 60)}t${m % 60 ? ` ${m % 60}` : ''}`);
+    const timeLabel = m => {
+      if (maltTid) return formatClock(new Date(routeStartTime.getTime() + m * 60000));
+      return m < 60 ? `${m} min` : `${Math.floor(m / 60)}t${m % 60 ? ` ${m % 60}` : ''}`;
+    };
     const distAtSeconds = t => {
       let i = 1;
       while (i < cumSeconds.length - 1 && cumSeconds[i] < t) i++;

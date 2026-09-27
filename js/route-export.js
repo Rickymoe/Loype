@@ -145,6 +145,10 @@ function loadSharedRouteFromUrl() {
   routeSource = null;
   routeStartTime = null;
   routeEndTime = null;
+  routeTimes = null;
+  routeHrAvg = null;
+  routeHrMax = null;
+  routeActivity = null;
   if (params.get('m') === '1') document.getElementById('loype-mirror-checkbox').checked = true;
 
   redrawRoutePolyline();
@@ -168,6 +172,38 @@ function loadSharedRouteFromUrl() {
   return true;
 }
 
+// Puls kan ligge i flere navnerom: Garmin skriver <ns3:hr> og Strava
+// <gpxtpx:hr>, og prefikset er nettopp det som varierer mellom verktøyene.
+// querySelector matcher ikke navnerom i det hele tatt, så vi leter i stedet
+// etter første element der localName er «hr» — den er lik i alle variantene.
+function lesPuls(el) {
+  for (const node of el.getElementsByTagName('*')) {
+    if (node.localName !== 'hr') continue;
+    const verdi = parseFloat(node.textContent);
+    return Number.isFinite(verdi) ? verdi : null;
+  }
+  return null;
+}
+
+// Aktiviteten fila selv oppgir: <type> rett under <trk>. Vi leter bare blant
+// trk sine direkte barn, siden extensions kan ha egne <type>-elementer.
+// Filas egne ord er mer til å stole på enn en knapp i panelet, men verdiene
+// varierer (Garmin skriver «running», Strava «Run», tredjepartsverktøy kan
+// skrive «hiking»), så de normaliseres til de tre vi har koeffisienter for.
+function parseGpxActivity(doc) {
+  const trk = doc.getElementsByTagName('trk')[0];
+  if (!trk) return null;
+  for (const barn of trk.children) {
+    if (barn.localName !== 'type') continue;
+    const verdi = (barn.textContent || '').trim().toLowerCase();
+    if (verdi.indexOf('cycl') !== -1 || verdi.indexOf('bik') !== -1) return 'cycling';
+    if (verdi.indexOf('walk') !== -1 || verdi.indexOf('hik') !== -1) return 'walking';
+    if (verdi.indexOf('run') !== -1) return 'running';
+    return null;
+  }
+  return null;
+}
+
 // Godtar både <trkpt> (spor) og <rtept> (rute) siden ulike verktøy
 // (Strava, Garmin, kartverket.no m.fl.) eksporterer det ene eller det andre.
 function parseGpxPoints(gpxText) {
@@ -177,6 +213,10 @@ function parseGpxPoints(gpxText) {
   let els = Array.from(doc.querySelectorAll('trkpt'));
   if (els.length === 0) els = Array.from(doc.querySelectorAll('rtept'));
   if (els.length === 0) throw new Error('Fant ingen rutepunkter i GPX-filen.');
+
+  // Aktiviteten gjelder hele fila, ikke det enkelte punktet. Den legges på
+  // punktene her fordi loadRouteFromGpxPoints bare får punktene å jobbe med.
+  const activity = parseGpxActivity(doc);
 
   const points = els.map(el => {
     const lat = parseFloat(el.getAttribute('lat'));
@@ -188,11 +228,45 @@ function parseGpxPoints(gpxText) {
     const timeEl = el.querySelector('time');
     const lest = timeEl ? new Date(timeEl.textContent) : null;
     const time = lest && Number.isFinite(lest.getTime()) ? lest : null;
-    return { lat, lng, elevation, time };
+    return { lat, lng, elevation, time, hr: lesPuls(el), activity };
   }).filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 
   if (points.length === 0) throw new Error('Fant ingen gyldige koordinater i GPX-filen.');
   return points;
+}
+
+// Klokketid per punkt i sekunder fra start, parallelt med routePoints. Punkter
+// uten eget tidsstempel får et interpolert et mellom naboene sine, så ingen
+// delstrekning faller ut av energiberegningen eller tidsaksen. Returen er
+// stigende så lenge filas egne tidsstempler er det.
+function buildRouteTimes(points, start) {
+  const kjent = [];
+  points.forEach((p, i) => {
+    if (p.time) kjent.push({ i, t: (p.time - start) / 1000 });
+  });
+  if (kjent.length === 0) return null;
+
+  const tider = new Array(points.length);
+  for (let k = 0; k < kjent.length; k++) {
+    const fra = kjent[k];
+    const til = kjent[k + 1];
+    tider[fra.i] = fra.t;
+    if (!til) {
+      // Halen etter siste tidsstempel beholder den siste kjente tiden. Det
+      // gjør delstrekningene der til null minutter, som er riktigere enn å
+      // gjette en fart for dem.
+      for (let i = fra.i + 1; i < points.length; i++) tider[i] = fra.t;
+      break;
+    }
+    const steg = til.i - fra.i;
+    for (let d = 1; d < steg; d++) {
+      tider[fra.i + d] = fra.t + ((til.t - fra.t) * d) / steg;
+    }
+  }
+  // Ingenting er målt før første tidsstempel heller — de punktene får den
+  // første kjente tiden.
+  for (let i = 0; i < kjent[0].i; i++) tider[i] = kjent[0].t;
+  return tider;
 }
 
 // Bruker høyde fra fila der den finnes (unngår unødvendige API-kall) og
@@ -209,6 +283,15 @@ function loadRouteFromGpxPoints(points) {
   const tider = points.map(p => p.time).filter(Boolean);
   routeStartTime = tider.length ? tider[0] : null;
   routeEndTime = tider.length ? tider[tider.length - 1] : null;
+
+  // Faktatallene resten av appen bygger på når ruten er en målt tur: tiden
+  // per punkt og pulsen fra fila. Alle er null for filer som ikke har dem.
+  routeTimes = routeStartTime ? buildRouteTimes(points, routeStartTime) : null;
+  const pulser = points.map(p => p.hr).filter(v => typeof v === 'number');
+  routeHrAvg = pulser.length ? Math.round(pulser.reduce((a, b) => a + b, 0) / pulser.length) : null;
+  routeHrMax = pulser.length ? Math.round(Math.max(...pulser)) : null;
+  routeActivity = points.find(p => p.activity)?.activity || null;
+
   document.getElementById('loype-mirror-checkbox').checked = false;
 
   redrawRoutePolyline();
